@@ -431,23 +431,9 @@ export default function Manual() {
     });
   };
 
-  const handleImportContent = (content: string, seoData?: any) => {
+  const handleImportContent = (content: string) => {
     if (editor) {
       editor.commands.setContent(content);
-    }
-    
-    // Preencher automaticamente os campos de SEO se fornecidos
-    if (seoData) {
-      if (seoData.keyword) setKeyword(seoData.keyword);
-      if (seoData.slug) setSlug(seoData.slug);
-      if (seoData.metaDescription) setMetaDescription(seoData.metaDescription);
-      if (seoData.altText) setAltText(seoData.altText);
-      if (seoData.excerpt) setExcerpt(seoData.excerpt);
-      
-      toast({
-        title: "Dados SEO preenchidos!",
-        description: "Todos os campos de SEO foram preenchidos automaticamente pela IA.",
-      });
     }
   };
 

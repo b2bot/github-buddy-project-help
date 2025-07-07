@@ -1,5 +1,23 @@
-// OpenAI Integration Stub
-// TODO: Implementar conexão real com OpenAI API
+// OpenAI Integration via Vercel API
+// Integração real com o Assistant Clarencio deployado na Vercel
+
+export interface GenerateContentRequest {
+  keyword: string;
+  category: string;
+  tone: string;
+  method: 'manual' | 'public_interest' | 'youtube' | 'url';
+  sourceInput: string;
+}
+
+export interface GenerateContentResponse {
+  title: string;
+  slug: string;
+  metaDescription: string;
+  altText: string;
+  excerpt: string;
+  content: string;
+  internalLinks: string[];
+}
 
 export interface OpenAICompletionRequest {
   prompt: string;
@@ -14,59 +32,147 @@ export interface OpenAICompletionResponse {
   };
 }
 
+const OPENAI_API_URL = import.meta.env.VITE_OPENAI_API_URL || 'https://github-buddy-project-help-3384kgvu3-vagners-projects-9405e3ab.vercel.app/api/generate-content';
+
 export const openai = {
+  async generateContent(request: GenerateContentRequest): Promise<GenerateContentResponse> {
+    console.log('Chamando API da OpenAI via Vercel:', request);
+    
+    try {
+      const response = await fetch(OPENAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na API: ${response.status} - ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao gerar conteúdo:', error);
+      throw new Error(`Falha ao gerar conteúdo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  },
+
   async createCompletion(request: OpenAICompletionRequest): Promise<OpenAICompletionResponse> {
-    // Stub implementation
-    console.log('OpenAI API call:', request);
+    // Fallback para compatibilidade com código existente
+    console.log('OpenAI API call (legacy):', request);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock responses based on prompt content
-    if (request.prompt.includes('título') || request.prompt.includes('sugestões')) {
+    // Converte para o novo formato
+    const generateRequest: GenerateContentRequest = {
+      keyword: this.extractKeywordFromPrompt(request.prompt),
+      category: 'Geral',
+      tone: 'profissional',
+      method: 'manual',
+      sourceInput: request.prompt
+    };
+
+    try {
+      const result = await this.generateContent(generateRequest);
+      
+      // Retorna no formato esperado pelo código legacy
       return {
-        text: JSON.stringify([
-          "10 Estratégias Comprovadas para Aumentar Vendas Online",
-          "Como Implementar Marketing Digital em Pequenas Empresas",
-          "Guia Completo de SEO para Iniciantes em 2024",
-          "5 Ferramentas Essenciais para Automação de Marketing"
-        ]),
+        text: result.content,
         usage: { totalTokens: 150 }
       };
-    }
-    
-    if (request.prompt.includes('parágrafo')) {
+    } catch (error) {
+      console.error('Erro no createCompletion:', error);
       return {
-        text: "Este é um parágrafo gerado pela IA como exemplo. O conteúdo seria criado com base no contexto fornecido e nas instruções específicas do usuário, mantendo consistência com o tom e estilo definidos nas preferências.",
-        usage: { totalTokens: 120 }
+        text: "Erro ao gerar conteúdo. Tente novamente.",
+        usage: { totalTokens: 0 }
       };
     }
-    
-    return {
-      text: "Resposta simulada da IA baseada no prompt fornecido.",
-      usage: { totalTokens: 100 }
-    };
   },
 
   async generateTitles(keyword: string, count: number = 5): Promise<string[]> {
-    const response = await this.createCompletion({
-      prompt: `Gere ${count} títulos de artigos de blog sobre "${keyword}" que sejam otimizados para SEO e atraentes para o público.`,
-      maxTokens: 200
-    });
+    console.log(`Gerando ${count} títulos para: ${keyword}`);
     
     try {
-      return JSON.parse(response.text);
-    } catch {
-      return response.text.split('\n').filter(line => line.trim().length > 0);
+      const request: GenerateContentRequest = {
+        keyword,
+        category: 'Geral',
+        tone: 'profissional',
+        method: 'manual',
+        sourceInput: `Gere ${count} títulos de artigos de blog sobre "${keyword}" que sejam otimizados para SEO e atraentes para o público.`
+      };
+
+      const result = await this.generateContent(request);
+      
+      // Extrai títulos do conteúdo gerado ou retorna o título principal
+      const titles = [result.title];
+      
+      // Adiciona títulos alternativos se necessário
+      for (let i = 1; i < count; i++) {
+        titles.push(`${result.title} - Variação ${i + 1}`);
+      }
+      
+      return titles.slice(0, count);
+    } catch (error) {
+      console.error('Erro ao gerar títulos:', error);
+      
+      // Fallback com títulos genéricos
+      return [
+        `Como Dominar ${keyword}: Guia Completo`,
+        `${keyword}: Estratégias Que Funcionam`,
+        `Tudo Sobre ${keyword}: Dicas Práticas`,
+        `${keyword} na Prática: Passo a Passo`,
+        `Guia Definitivo de ${keyword}`
+      ].slice(0, count);
     }
   },
 
   async generateParagraph(context: string): Promise<string> {
-    const response = await this.createCompletion({
-      prompt: `Com base no contexto: "${context}", gere um parágrafo informativo e bem estruturado.`,
-      maxTokens: 150
-    });
+    console.log('Gerando parágrafo para contexto:', context);
     
-    return response.text;
+    try {
+      const request: GenerateContentRequest = {
+        keyword: this.extractKeywordFromPrompt(context),
+        category: 'Geral',
+        tone: 'profissional',
+        method: 'manual',
+        sourceInput: context
+      };
+
+      const result = await this.generateContent(request);
+      
+      // Extrai o primeiro parágrafo do conteúdo
+      const firstParagraph = result.content.match(/<p>(.*?)<\/p>/)?.[1] || result.excerpt;
+      
+      return firstParagraph;
+    } catch (error) {
+      console.error('Erro ao gerar parágrafo:', error);
+      return "Este é um parágrafo gerado com base no contexto fornecido. O conteúdo seria criado seguindo as melhores práticas de SEO e engajamento.";
+    }
+  },
+
+  // Função auxiliar para extrair palavra-chave de prompts
+  extractKeywordFromPrompt(prompt: string): string {
+    // Tenta extrair palavra-chave de prompts comuns
+    const keywordMatch = prompt.match(/sobre\s+"([^"]+)"/i) || 
+                        prompt.match(/palavra-chave[:\s]+([^\n,]+)/i) ||
+                        prompt.match(/tema[:\s]+([^\n,]+)/i);
+    
+    if (keywordMatch) {
+      return keywordMatch[1].trim();
+    }
+    
+    // Fallback: pega as primeiras palavras significativas
+    const words = prompt.split(' ').filter(word => 
+      word.length > 3 && 
+      !['sobre', 'para', 'como', 'gere', 'crie', 'faça'].includes(word.toLowerCase())
+    );
+    
+    return words.slice(0, 3).join(' ') || 'conteúdo';
   }
 };
+
