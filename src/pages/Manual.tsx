@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { wordpress } from "@/integrations/wordpress";
+import TipTapEditor from "@/components/manual/TipTapEditor";
 
 export default function Manual() {
   const [slug, setSlug] = useState("");

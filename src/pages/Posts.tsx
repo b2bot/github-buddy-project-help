@@ -252,7 +252,7 @@ export default function Posts() {
             <h1 className="text-3xl font-bold">Posts</h1>
             <p className="text-muted-foreground">Crie, revise e aprove os posts do seu blog.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-8">
             <Button variant="outline" onClick={() => setCreateModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Post

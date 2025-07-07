@@ -5,13 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, ChevronRight, ChevronLeft, CheckCircle, Wand2 } from "lucide-react";
+import { Loader2, Sparkles, ChevronRight, ChevronLeft, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { openai, GenerateContentRequest } from "@/integrations/openai";
-
-interface CreatePostWizardProps {
-  onImport: (content: string, seoData?: SEOData) => void;
-}
+import { generateContent, type GenerateContentResponse } from "@/integrations/openai";
 
 interface SEOData {
   keyword: string;
@@ -20,6 +16,11 @@ interface SEOData {
   altText: string;
   excerpt: string;
   category: string;
+  title?: string;
+}
+
+interface CreatePostWizardProps {
+  onImport: (content: string, seoData?: SEOData) => void;
 }
 
 export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
@@ -27,36 +28,18 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [tone, setTone] = useState("profissional");
-  const [method, setMethod] = useState<'manual' | 'public_interest' | 'youtube' | 'url'>('manual');
-  const [sourceInput, setSourceInput] = useState("");
+  const [method, setMethod] = useState("manual");
   const [audienceInterests, setAudienceInterests] = useState("");
+  const [sourceInput, setSourceInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<any>(null);
+  const [generatedContent, setGeneratedContent] = useState<GenerateContentResponse | null>(null);
   const { toast } = useToast();
 
-  const handleGenerateContent = async () => {
+  const generatePost = async () => {
     if (!keyword.trim()) {
       toast({
-        title: "Campo obrigatório",
-        description: "Preencha a palavra-chave principal.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (method === 'youtube' && !sourceInput.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Forneça a transcrição do vídeo do YouTube.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (method === 'url' && !sourceInput.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Forneça a URL ou conteúdo base.",
+        title: "Palavra-chave obrigatória",
+        description: "Digite uma palavra-chave para gerar o conteúdo.",
         variant: "destructive"
       });
       return;
@@ -64,32 +47,45 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
 
     setIsGenerating(true);
     try {
-      const request: GenerateContentRequest = {
-        keyword: keyword.trim(),
-        category: category || 'Geral',
+      console.log('🚀 Iniciando geração com parâmetros:', {
+        keyword,
+        category: category || 'geral',
         tone,
         method,
         sourceInput: method === 'public_interest' ? audienceInterests : sourceInput
-      };
-
-      console.log('Enviando requisição para gerar conteúdo:', request);
-      
-      const result = await openai.generateContent(request);
-      
-      console.log('Conteúdo gerado:', result);
-      
-      setGeneratedContent(result);
-      setCurrentStep(2);
-      
-      toast({
-        title: "Conteúdo gerado com sucesso!",
-        description: "Revise o conteúdo e os dados de SEO antes de importar.",
       });
+
+      const response = await generateContent({
+        keyword,
+        category: category || 'geral',
+        tone,
+        method,
+        sourceInput: method === 'public_interest' ? audienceInterests : sourceInput
+      });
+
+      console.log('✅ Resposta recebida:', {
+        success: response.success,
+        source: response.source,
+        hasContent: !!response.content,
+        hasSeoData: !!response.seoData
+      });
+
+      if (response.success && response.content && response.seoData) {
+        setGeneratedContent(response);
+        setCurrentStep(2);
+        
+        toast({
+          title: "Conteúdo gerado com sucesso!",
+          description: `Artigo criado via ${response.source === 'assistant' ? 'Assistant Clarencio' : 'Framework Leadclinic'}`,
+        });
+      } else {
+        throw new Error('Resposta inválida da API');
+      }
     } catch (error) {
-      console.error('Erro ao gerar conteúdo:', error);
+      console.error('❌ Erro na geração:', error);
       toast({
-        title: "Erro ao gerar conteúdo",
-        description: error instanceof Error ? error.message : "Erro desconhecido. Tente novamente.",
+        title: "Erro na geração",
+        description: "Não foi possível gerar o conteúdo. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -98,7 +94,7 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
   };
 
   const handleImportContent = () => {
-    if (!generatedContent) {
+    if (!generatedContent || !generatedContent.seoData) {
       toast({
         title: "Nenhum conteúdo gerado",
         description: "Gere o conteúdo primeiro antes de importar.",
@@ -107,21 +103,31 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
       return;
     }
 
+    console.log('📋 Importando conteúdo e dados SEO:', {
+      hasContent: !!generatedContent.content,
+      seoData: generatedContent.seoData
+    });
+
+    // Garantir que todos os campos SEO estão preenchidos
     const seoData: SEOData = {
-      keyword: keyword,
-      slug: generatedContent.slug,
-      metaDescription: generatedContent.metaDescription,
-      altText: generatedContent.altText,
-      excerpt: generatedContent.excerpt,
-      category: category || 'Geral'
+      keyword: generatedContent.seoData.keyword || keyword,
+      slug: generatedContent.seoData.slug || keyword.toLowerCase().replace(/\s+/g, '-'),
+      metaDescription: generatedContent.seoData.metaDescription || `Artigo sobre ${keyword}`,
+      altText: generatedContent.seoData.altText || `Imagem sobre ${keyword}`,
+      excerpt: generatedContent.seoData.excerpt || `Conteúdo sobre ${keyword}`,
+      category: generatedContent.seoData.category || category || 'geral',
+      title: generatedContent.seoData.title || `Artigo sobre ${keyword}`
     };
 
+    console.log('✅ Dados SEO preparados:', seoData);
+
+    // Chamar função de importação do componente pai
     onImport(generatedContent.content, seoData);
     setCurrentStep(3);
     
     toast({
-      title: "Conteúdo importado!",
-      description: "O artigo e os dados de SEO foram carregados no editor.",
+      title: "Conteúdo importado com sucesso!",
+      description: "O artigo e todos os dados de SEO foram carregados no editor.",
     });
   };
 
@@ -130,38 +136,21 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
     setKeyword("");
     setCategory("");
     setTone("profissional");
-    setMethod('manual');
-    setSourceInput("");
+    setMethod("manual");
     setAudienceInterests("");
+    setSourceInput("");
     setGeneratedContent(null);
   };
 
   return (
     <div className="space-y-6">
-      {/* Progress Steps */}
-      <div className="flex items-center justify-between">
-        {[1, 2, 3].map((step) => (
-          <div key={step} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step === currentStep ? 'bg-primary text-white' :
-              step < currentStep ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
-            }`}>
-              {step < currentStep ? <CheckCircle className="h-4 w-4" /> : step}
-            </div>
-            {step < 3 && (
-              <ChevronRight className="h-4 w-4 mx-2 text-muted-foreground" />
-            )}
-          </div>
-        ))}
-      </div>
-
       {/* Step 1: Configuração */}
       {currentStep === 1 && (
-        <Card>
+        <Card className="glass">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wand2 className="h-5 w-5" />
-              Configuração do Conteúdo
+            <CardTitle className="flex items-center space-x-2">
+              <Sparkles className="h-5 w-5" />
+              <span>Criar Conteúdo com IA</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -169,17 +158,17 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
               <Label htmlFor="keyword">Palavra-chave Principal *</Label>
               <Input
                 id="keyword"
-                placeholder="Ex: marketing digital para pequenas empresas"
+                placeholder="Ex: marketing digital, SEO, vendas online..."
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="category">Categoria</Label>
               <Input
                 id="category"
-                placeholder="Ex: Marketing Digital, SEO, Redes Sociais"
+                placeholder="Ex: marketing, vendas, tecnologia..."
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               />
@@ -187,16 +176,16 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
 
             <div>
               <Label htmlFor="tone">Tom do Conteúdo</Label>
-              <Select value={tone} onValueChange={setTone}>
+              <Select value={tone} onValueChange={(value) => setTone(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="profissional">Profissional</SelectItem>
-                  <SelectItem value="informal">Informal</SelectItem>
-                  <SelectItem value="otimista">Otimista</SelectItem>
+                  <SelectItem value="casual">Casual</SelectItem>
                   <SelectItem value="técnico">Técnico</SelectItem>
                   <SelectItem value="educativo">Educativo</SelectItem>
+                  <SelectItem value="persuasivo">Persuasivo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -247,16 +236,16 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
                 />
               </div>
             )}
-            
+
             <Button 
-              onClick={handleGenerateContent}
-              disabled={isGenerating}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90"
+              onClick={generatePost} 
+              disabled={isGenerating || !keyword.trim()}
+              className="w-full gradient-primary"
             >
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Gerando Conteúdo...
+                  Gerando conteúdo com IA...
                 </>
               ) : (
                 <>
@@ -269,33 +258,47 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
         </Card>
       )}
 
-      {/* Step 2: Revisão do Conteúdo */}
+      {/* Step 2: Revisão */}
       {currentStep === 2 && generatedContent && (
-        <Card>
+        <Card className="glass">
           <CardHeader>
             <CardTitle>Revisão do Conteúdo Gerado</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm font-medium text-gray-600">Título</Label>
-                <p className="text-sm bg-gray-50 p-2 rounded">{generatedContent.title}</p>
+                <div className="text-sm bg-gray-50 p-2 rounded">
+                  {generatedContent.seoData?.title || 'Título não gerado'}
+                </div>
               </div>
+              
               <div>
                 <Label className="text-sm font-medium text-gray-600">Slug</Label>
-                <p className="text-sm bg-gray-50 p-2 rounded">{generatedContent.slug}</p>
+                <div className="text-sm bg-gray-50 p-2 rounded">
+                  {generatedContent.seoData?.slug || 'Slug não gerado'}
+                </div>
               </div>
-              <div className="md:col-span-2">
+              
+              <div>
                 <Label className="text-sm font-medium text-gray-600">Meta Description</Label>
-                <p className="text-sm bg-gray-50 p-2 rounded">{generatedContent.metaDescription}</p>
+                <div className="text-sm bg-gray-50 p-2 rounded">
+                  {generatedContent.seoData?.metaDescription || 'Meta description não gerada'}
+                </div>
               </div>
+              
               <div>
                 <Label className="text-sm font-medium text-gray-600">Alt Text da Imagem</Label>
-                <p className="text-sm bg-gray-50 p-2 rounded">{generatedContent.altText}</p>
+                <div className="text-sm bg-gray-50 p-2 rounded">
+                  {generatedContent.seoData?.altText || 'Alt text não gerado'}
+                </div>
               </div>
-              <div>
-                <Label className="text-sm font-medium text-gray-600">Excerpt</Label>
-                <p className="text-sm bg-gray-50 p-2 rounded">{generatedContent.excerpt}</p>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-gray-600">Excerpt</Label>
+              <div className="text-sm bg-gray-50 p-2 rounded">
+                {generatedContent.seoData?.excerpt || 'Excerpt não gerado'}
               </div>
             </div>
 
@@ -303,22 +306,25 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
               <Label className="text-sm font-medium text-gray-600">Prévia do Conteúdo</Label>
               <div 
                 className="text-sm bg-gray-50 p-4 rounded max-h-60 overflow-y-auto"
-                dangerouslySetInnerHTML={{ __html: generatedContent.content.substring(0, 500) + '...' }}
+                dangerouslySetInnerHTML={{ 
+                  __html: generatedContent.content ? 
+                    (generatedContent.content.length > 500 ? 
+                      generatedContent.content.substring(0, 500) + '...' : 
+                      generatedContent.content
+                    ) : 'Conteúdo não gerado'
+                }}
               />
             </div>
 
-            {generatedContent.internalLinks && generatedContent.internalLinks.length > 0 && (
-              <div>
-                <Label className="text-sm font-medium text-gray-600">Links Internos Sugeridos</Label>
-                <ul className="text-sm bg-gray-50 p-2 rounded">
-                  {generatedContent.internalLinks.map((link: string, index: number) => (
-                    <li key={index} className="text-blue-600 hover:underline">
-                      {link}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <strong>Fonte:</strong> {
+                  generatedContent.source === 'assistant' ? 'Assistant Clarencio (OpenAI)' :
+                  generatedContent.source === 'framework_leadclinic' ? 'Framework Leadclinic' :
+                  'Fallback'
+                }
+              </p>
+            </div>
             
             <div className="flex gap-3">
               <Button 
@@ -343,23 +349,37 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
 
       {/* Step 3: Sucesso */}
       {currentStep === 3 && (
-        <Card>
+        <Card className="glass">
           <CardHeader>
-            <CardTitle className="text-center text-green-600">Conteúdo Importado com Sucesso!</CardTitle>
+            <CardTitle className="text-center text-green-600 flex items-center justify-center space-x-2">
+              <CheckCircle className="h-6 w-6" />
+              <span>Conteúdo Importado com Sucesso!</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            <p>Seu artigo foi carregado no editor com todos os dados de SEO preenchidos automaticamente.</p>
-            <p className="text-sm text-gray-600">
-              Você pode continuar editando na aba "Editor" e verificar a pontuação de SEO na barra lateral.
+            <p className="text-gray-600">
+              O artigo e todos os dados de SEO foram carregados no editor. 
+              Você pode agora editar o conteúdo e ajustar as configurações conforme necessário.
             </p>
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-medium text-green-800 mb-2">Campos preenchidos automaticamente:</h4>
+              <ul className="text-sm text-green-700 space-y-1">
+                <li>✅ Conteúdo do artigo</li>
+                <li>✅ Palavra-chave principal</li>
+                <li>✅ Slug da URL</li>
+                <li>✅ Meta description</li>
+                <li>✅ Alt text da imagem</li>
+                <li>✅ Excerpt/resumo</li>
+              </ul>
+            </div>
             
             <Button 
               onClick={resetWizard}
               variant="outline"
               className="w-full"
             >
-              Criar Novo Artigo
+              Criar Novo Conteúdo
             </Button>
           </CardContent>
         </Card>
@@ -367,4 +387,3 @@ export function CreatePostWizard({ onImport }: CreatePostWizardProps) {
     </div>
   );
 }
-

@@ -1,17 +1,25 @@
 import { ReactNode } from "react";
 import { Header } from "./Header";
+import { useLocation } from "react-router-dom";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
+  const location = useLocation();
+  const isChatPage = location.pathname.startsWith("/chat");
+
   return (
-    <div className="min-h-screen bg-gradient-subtle">
+    <div className="h-screen flex flex-col">
       <Header />
-      <main className="container mx-auto py-6 px-4">
+      <div
+        className={`flex-1 ${
+          isChatPage ? "overflow-hidden" : "overflow-y-auto p-10"
+        }`}
+      >
         {children}
-      </main>
+      </div>
     </div>
   );
 }
