@@ -32,7 +32,8 @@ export interface OpenAICompletionResponse {
   };
 }
 
-const OPENAI_API_URL = import.meta.env.VITE_OPENAI_API_URL || 'https://github-buddy-project-help.vercel.app/api/generate-content';
+const OPENAI_API_URL = '/api/generate-content';
+console.log('Usando OPENAI_API_URL =', OPENAI_API_URL);
 
 export const openai = {
   async generateContent(request: GenerateContentRequest): Promise<GenerateContentResponse> {
