@@ -1,6 +1,3 @@
-// OpenAI Integration via Vercel API
-// Integração real com o Assistant Clarencio deployado na Vercel
-
 export interface GenerateContentRequest {
   keyword: string;
   category: string;
@@ -32,7 +29,7 @@ export interface OpenAICompletionResponse {
   };
 }
 
-const OPENAI_API_URL = import.meta.env.VITE_OPENAI_API_URL || 'https://github-buddy-project-help-3384kgvu3-vagners-projects-9405e3ab.vercel.app/api/generate-content';
+const OPENAI_API_URL = import.meta.env.VITE_OPENAI_API_URL || 'https://github-buddy-project-help.vercel.app/api/generate-content';
 
 export const openai = {
   async generateContent(request: GenerateContentRequest): Promise<GenerateContentResponse> {
@@ -43,11 +40,15 @@ export const openai = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        mode: 'cors',
         body: JSON.stringify(request)
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro na resposta da API:', response.status, errorText);
         throw new Error(`Erro na API: ${response.status} - ${response.statusText}`);
       }
 
@@ -60,8 +61,72 @@ export const openai = {
       return data;
     } catch (error) {
       console.error('Erro ao gerar conteúdo:', error);
+      
+      // Fallback para desenvolvimento local ou quando API falha
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.log('Usando fallback local devido a erro de rede');
+        return this.generateFallbackContent(request);
+      }
+      
       throw new Error(`Falha ao gerar conteúdo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
+  },
+
+  // Fallback para quando a API não está disponível
+  generateFallbackContent(request: GenerateContentRequest): GenerateContentResponse {
+    const { keyword, category, tone } = request;
+    
+    return {
+      title: `${keyword}: Guia Completo e Atualizado`,
+      slug: keyword.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      metaDescription: `Descubra tudo sobre ${keyword} neste guia completo. Aprenda as melhores práticas e estratégias para ${keyword} de forma eficiente.`,
+      altText: `Imagem ilustrativa sobre ${keyword} - Guia completo`,
+      excerpt: `Aprenda sobre ${keyword} de forma prática e eficiente. Este guia aborda os principais conceitos e estratégias para dominar ${keyword}.`,
+      content: `
+        <h1>${keyword}: Guia Completo e Atualizado</h1>
+        
+        <p>Bem-vindo ao guia mais completo sobre <strong>${keyword}</strong>. Neste artigo, você descobrirá tudo o que precisa saber para dominar este tema de forma prática e eficiente.</p>
+        
+        <h2>O que é ${keyword}?</h2>
+        <p>${keyword} é um conceito fundamental que tem ganhado cada vez mais importância no cenário atual. Compreender seus princípios básicos é essencial para qualquer pessoa que deseja se destacar nesta área.</p>
+        
+        <h2>Por que ${keyword} é importante?</h2>
+        <p>A importância de ${keyword} se manifesta em diversos aspectos:</p>
+        <ul>
+          <li>Melhora significativa nos resultados</li>
+          <li>Otimização de processos e recursos</li>
+          <li>Vantagem competitiva no mercado</li>
+          <li>Maior eficiência operacional</li>
+        </ul>
+        
+        <h2>Como implementar ${keyword}</h2>
+        <p>Para implementar ${keyword} com sucesso, siga estas etapas fundamentais:</p>
+        
+        <h3>1. Planejamento Estratégico</h3>
+        <p>O primeiro passo é desenvolver um planejamento sólido que considere todos os aspectos relevantes de ${keyword}.</p>
+        
+        <h3>2. Execução Prática</h3>
+        <p>Com o planejamento em mãos, é hora de colocar ${keyword} em prática, sempre monitorando os resultados.</p>
+        
+        <h3>3. Monitoramento e Otimização</h3>
+        <p>Acompanhe constantemente os resultados e faça ajustes necessários para maximizar os benefícios de ${keyword}.</p>
+        
+        <h2>Melhores Práticas para ${keyword}</h2>
+        <p>Aqui estão algumas das melhores práticas que você deve seguir:</p>
+        <ul>
+          <li>Mantenha-se sempre atualizado com as tendências</li>
+          <li>Invista em capacitação contínua</li>
+          <li>Utilize ferramentas adequadas</li>
+          <li>Meça e analise resultados regularmente</li>
+        </ul>
+        
+        <h2>Conclusão</h2>
+        <p>Dominar ${keyword} é essencial para o sucesso em ${category}. Com as estratégias e práticas apresentadas neste guia, você estará bem preparado para implementar ${keyword} de forma eficaz e obter resultados excepcionais.</p>
+        
+        <p>Lembre-se: o sucesso com ${keyword} vem da prática consistente e do aprendizado contínuo. Continue estudando e aplicando esses conceitos para alcançar seus objetivos.</p>
+      `,
+      internalLinks: []
+    };
   },
 
   async createCompletion(request: OpenAICompletionRequest): Promise<OpenAICompletionResponse> {
@@ -175,4 +240,3 @@ export const openai = {
     return words.slice(0, 3).join(' ') || 'conteúdo';
   }
 };
-

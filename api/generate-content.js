@@ -2,14 +2,10 @@
 // Este arquivo deve ser deployado na Vercel junto com as variáveis de ambiente
 
 export default async function handler(req, res) {
-  // Configuração CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*'); // ou seu domínio
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PATCH,DELETE,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Content-Type, Authorization'
-  );
+  // CORS liberado geral
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Tratamento pré-flight
   if (req.method === 'OPTIONS') {
