@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     // Configuração da OpenAI
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_API;
     const ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 
     console.log('Variáveis de ambiente:', {
