@@ -1,3 +1,6 @@
+// OpenAI Integration via Vercel API
+// Integração real com o Assistant Clarencio deployado na Vercel
+
 export interface GenerateContentRequest {
   keyword: string;
   category: string;
