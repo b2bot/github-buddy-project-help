@@ -37,16 +37,13 @@ export function Header() {
           <NavLink to="/strategy" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
             Estratégia
           </NavLink>
-		  <NavLink to="/strategyv2" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            StrategyV2
-          </NavLink>
           <NavLink to="/integrations" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
             Integrações
           </NavLink>
           <NavLink to="/manual" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
             Manual
           </NavLink>
-		  <NavLink to="/chat" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+          <NavLink to="/chat" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
             Chat
           </NavLink>
           <NavLink to="/performance" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>

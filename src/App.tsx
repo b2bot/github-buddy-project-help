@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +8,6 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Posts from "./pages/Posts";
 import Strategy from "./pages/Strategy";
-import StrategyV2 from "./pages/StrategyV2";
 import Integrations from "./pages/Integrations";
 import Manual from "./pages/Manual";
 import Chat from "./pages/Chat";
@@ -29,10 +29,9 @@ const App = () => (
             <Route path="/" element={<Posts />} />
             <Route path="/posts" element={<Posts />} />
             <Route path="/strategy" element={<Strategy />} />
-			<Route path="/strategyv2" element={<StrategyV2 />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/manual" element={<Manual />} />
-			<Route path="/chat" element={<Chat />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/performance" element={<Performance />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
