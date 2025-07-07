@@ -108,7 +108,7 @@ export default function StrategyV2() {
               <CardHeader>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Engajamento do Público
+                  Engajamento doO Público
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
