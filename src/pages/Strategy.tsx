@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Layout } from "@/components/layout/Layout";
+import { TrendsAnalysisModal } from "@/components/strategy/TrendsAnalysisModal";
 import { Target, Users, Lightbulb, TrendingUp, Search, Link2, FileText, Sparkles, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +28,7 @@ interface StrategyPillar {
 export default function Strategy() {
   const [selectedPillar, setSelectedPillar] = useState<StrategyPillar | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [trendsModalOpen, setTrendsModalOpen] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
@@ -173,7 +174,6 @@ export default function Strategy() {
     
     setSelectedPillar(updatedPillar);
     
-    // Update the pillar in the main state
     setPillars(prev => 
       prev.map(p => p.id === updatedPillar.id ? updatedPillar : p)
     );
@@ -184,7 +184,6 @@ export default function Strategy() {
     setAiResponse("");
     
     try {
-      // Simulate AI generation - replace with actual API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const mockResponse = `Sugestão para "${suggestion}":
@@ -230,7 +229,6 @@ selectedPillar?.id === 'keyword-analysis' ?
   const handleSendToEditor = () => {
     if (!selectedPillar || !aiResponse) return;
     
-    // Store the generated content for the manual editor
     const editorData = {
       content: aiResponse,
       seoData: {
@@ -251,7 +249,6 @@ selectedPillar?.id === 'keyword-analysis' ?
       description: "Redirecionando para a página de edição manual...",
     });
     
-    // Navigate to manual editor
     setTimeout(() => {
       window.location.href = '/manual';
     }, 1000);
@@ -310,7 +307,7 @@ selectedPillar?.id === 'keyword-analysis' ?
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Próximos Passos</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="glass">
+            <Card className="glass cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setTrendsModalOpen(true)}>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
@@ -346,7 +343,7 @@ selectedPillar?.id === 'keyword-analysis' ?
           </div>
         </div>
 
-        {/* Modal de Detalhes */}
+        {/* Modal de Detalhes dos Pilares */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -449,6 +446,12 @@ selectedPillar?.id === 'keyword-analysis' ?
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Análise de Tendências */}
+        <TrendsAnalysisModal 
+          open={trendsModalOpen} 
+          onOpenChange={setTrendsModalOpen} 
+        />
       </div>
     </Layout>
   );
