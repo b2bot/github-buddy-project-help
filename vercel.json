@@ -1,6 +1,7 @@
-{
+]{
   "functions": {
-    "api/generate-content.js": {
+    "api/**/*.ts": {
+      "runtime": "vercel-node@18",
       "maxDuration": 60
     }
   },
@@ -24,4 +25,3 @@
     }
   ]
 }
-
