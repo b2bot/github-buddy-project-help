@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import Index from "./pages/Index";
 import Posts from "./pages/Posts";
 import CreativeAssistant from "./pages/CreativeAssistant";
 import CreativeAssistantHistory from "./pages/CreativeAssistantHistory";
@@ -34,8 +33,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
+          <Routes>          
             <Route path="/posts" element={<Posts />} />
             <Route path="/creative-assistant" element={<CreativeAssistant />} />
             <Route path="/creative-assistant/history" element={<CreativeAssistantHistory />} />
