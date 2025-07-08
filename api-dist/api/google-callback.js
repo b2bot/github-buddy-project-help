@@ -1,10 +1,13 @@
-import { google } from 'googleapis';
-import { createClient } from '../src/lib/supabase';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GET = GET;
+const googleapis_1 = require("googleapis");
+const supabase_1 = require("../src/lib/supabase");
 const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-callback';
-const oauth2Client = new google.auth.OAuth2('1015078541788-a38j0o12vm85m1bmddsbt40of7rul3r2.apps.googleusercontent.com', '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', redirectUri);
+const oauth2Client = new googleapis_1.google.auth.OAuth2('1015078541788-a38j0o12vm85m1bmddsbt40of7rul3r2.apps.googleusercontent.com', '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', redirectUri);
 // Substitui com suas chaves do Supabase
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-export async function GET(req) {
+const supabase = (0, supabase_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+async function GET(req) {
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     if (!code)
