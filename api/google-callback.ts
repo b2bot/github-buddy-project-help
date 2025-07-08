@@ -1,49 +1,52 @@
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import { google } from 'googleapis';
-import { createClient } from '../src/lib/supabase';
 
 const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-callback';
 
-const oauth2Client = new google.auth.OAuth2(
-  '1015078541788-a38j0o12vm85m1bmddsbt40of7rul3r2.apps.googleusercontent.com',
-  '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',
-  redirectUri
-);
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    const { code } = req.query;
 
-// Substitui com suas chaves do Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get('code');
-
-  if (!code) return new Response('Código de autorização ausente', { status: 400 });
+  if (!code) {
+        return res.status(400).json({ error: 'Código de autorização ausente' });
+  }
 
   try {
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
+        const oauth2Client = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID!,
+                process.env.GOOGLE_CLIENT_SECRET!,
+                redirectUri
+              );
 
-    // Salvar no Supabase (sem usuário ainda, só 1 registro genérico)
-    const { error } = await supabase.from('google_tokens').insert([
-      {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        scope: tokens.scope,
-        token_type: tokens.token_type,
-        expiry_date: tokens.expiry_date,
-      },
-    ]);
+      const { tokens } = await oauth2Client.getToken(code as string);
+        oauth2Client.setCredentials(tokens);
 
-    if (error) {
-      console.error(error);
-      return new Response('Erro ao salvar no Supabase', { status: 500 });
-    }
+      // Log dos tokens para debug (remover em produção)
+      console.log('Tokens recebidos:', {
+              access_token: tokens.access_token ? 'presente' : 'ausente',
+              refresh_token: tokens.refresh_token ? 'presente' : 'ausente',
+              scope: tokens.scope,
+              token_type: tokens.token_type,
+              expiry_date: tokens.expiry_date,
+      });
 
-    return new Response('Autenticação concluída com sucesso!', { status: 200 });
-  } catch (err) {
-    console.error(err);
-    return new Response('Erro na autenticação', { status: 500 });
+      // Por enquanto, apenas retorna sucesso
+      // TODO: Implementar salvamento no Supabase
+      return res.status(200).json({ 
+                                        success: true, 
+              message: 'Autorização Google realizada com sucesso!',
+              tokens: {
+                        access_token: tokens.access_token ? 'presente' : 'ausente',
+                        refresh_token: tokens.refresh_token ? 'presente' : 'ausente',
+                        scope: tokens.scope,
+                        expires_in: tokens.expiry_date
+              }
+      });
+
+  } catch (error) {
+        console.error('Erro na autorização Google:', error);
+        return res.status(500).json({ 
+                                          error: 'Erro interno do servidor',
+                details: error instanceof Error ? error.message : 'Erro desconhecido'
+        });
   }
 }
