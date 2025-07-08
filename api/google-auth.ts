@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+
 import { google } from 'googleapis';
 
 const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-callback';
