@@ -1,6 +1,7 @@
 {
   "functions": {
     "api-dist/**/*.js": {
+	  "runtime": "nodejs18.x",
       "maxDuration": 60
     }
   },
