@@ -1,9 +1,15 @@
 {
   "functions": {
-    "api/**/*.ts": {
+    "api-dist/**/*.js": {
       "maxDuration": 60
     }
   },
+  "routes": [
+    {
+	  "src": "/api/(.*)",
+      "dest": "/api-dist/$1.js"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
