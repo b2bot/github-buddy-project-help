@@ -1,6 +1,5 @@
-
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, PenTool, FileText, TrendingUp, Settings, Zap, BarChart3, MessageSquare, Users } from "lucide-react";
+import { Moon, Sun, PenTool, FileText, TrendingUp, Settings, Zap, BarChart3, MessageSquare, Users, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
@@ -34,6 +33,10 @@ export function Header() {
           <NavLink to="/posts" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground" }`}>
             <FileText className="h-4 w-4" />
             <span>Posts</span>
+          </NavLink>
+          <NavLink to="/creative-assistant" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <Sparkles className="h-4 w-4" />
+            <span>Assistente Criativo</span>
           </NavLink>
           <NavLink to="/strategy" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
             <TrendingUp className="h-4 w-4" />

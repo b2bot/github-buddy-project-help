@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Posts from "./pages/Posts";
+import CreativeAssistant from "./pages/CreativeAssistant";
+import CreativeAssistantHistory from "./pages/CreativeAssistantHistory";
 import Strategy from "./pages/Strategy";
 import Integrations from "./pages/Integrations";
 import Conteudo from "./pages/Conteudo";
@@ -28,6 +30,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/posts" element={<Posts />} />
+            <Route path="/creative-assistant" element={<CreativeAssistant />} />
+            <Route path="/creative-assistant/history" element={<CreativeAssistantHistory />} />
             <Route path="/strategy" element={<Strategy />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/conteudo" element={<Conteudo />} />
