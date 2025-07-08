@@ -34,7 +34,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>          
-            <Route path="/posts" element={<Posts />} />
+            <Route path="/" element={<Posts />} />
             <Route path="/creative-assistant" element={<CreativeAssistant />} />
             <Route path="/creative-assistant/history" element={<CreativeAssistantHistory />} />
             <Route path="/creative-assistant/social-post" element={<CreativeAssistantSocialPost />} />
