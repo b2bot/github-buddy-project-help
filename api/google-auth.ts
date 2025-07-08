@@ -5,8 +5,8 @@ const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-cal
 
 export async function GET(req: Request) {
   const oauth2Client = new google.auth.OAuth2(
-    '1015078541788-a38j0o12vm85m1bmddsbt40of7rul3r2.apps.googleusercontent.com',
-    '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',
+    process.env.GOOGLE_CLIENT_ID!,
+    process.env.GOOGLE_CLIENT_SECRET!,
     redirectUri
   );
 
