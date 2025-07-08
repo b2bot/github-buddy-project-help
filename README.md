@@ -218,7 +218,77 @@ npm run lint     # Linter
 - [ ] Automação de publicação social
 - [ ] Dashboard de ROI/conversões
 
-## 📄 Licença
+## 📄 Atualizações
+
+Release 08 de Julho de 2025:
+
+💬 Chat com a IA (Clarencio)
+O sistema agora conta com uma interface de chat conversacional com a IA “Clarencio”, integrada diretamente à API da OpenAI (via Function Calling). Esse chat permite que o usuário crie conteúdos orientados por etapas, com linguagem descontraída e assistência guiada, baseado no Framework Oficial da Leadclinic.
+
+Funcionalidades:
+Fluxo guiado de criação por etapas (ex: escolha de palavra-chave, geração de título, estruturação dos parágrafos, revisão SEO).
+
+Respostas da IA em tom amigável, com sugestões claras.
+
+IA integrada com as funções reais do sistema (generateContent, getSeoScore, suggestSeoFixes).
+
+Capacidade de revisar conteúdos já existentes e sugerir melhorias com base no SEO Score e LLM Score.
+
+🎯 Estratégias de Conteúdo
+Uma nova aba “Estratégia” foi adicionada ao sistema para auxiliar o planejamento de conteúdo a médio/longo prazo.
+
+O que é possível fazer:
+Criar planos de conteúdo por nicho ou campanha.
+
+Visualizar sugestões automáticas de pauta com base em tendências e interesse do público.
+
+Gerar títulos e temas com a IA a partir de uma base estratégica (ex: transcrição de vídeo, estudo de persona, URLs).
+
+🧠 Modo Inteligente de Otimização (IA + Métricas)
+Ao lado da aba de edição, foi integrada uma barra lateral inteligente com IA, que:
+
+Analisa o conteúdo em tempo real com base no SEO Score e LLM Score.
+
+Sugere ações de melhoria com comandos rápidos (ex: “reescrever o H1”, “melhorar o 2º parágrafo”).
+
+Explica o impacto de cada sugestão em linguagem simples.
+
+Mostra as regras que não estão sendo atendidas.
+
+🧱 Arquitetura GPT + API OpenAI
+A ferramenta utiliza um modelo GPT-4 com Assistant configurado na plataforma OpenAI (https://platform.openai.com/assistants), com suporte a Function Calling.
+
+Funções Integradas:
+generateContent: Geração completa de artigos com base em palavra-chave, transcrição ou instruções manuais.
+
+getSeoScore: Cálculo do SEO Score com base em regras clássicas e modernas.
+
+suggestSeoFixes: Sugestões automáticas com base nas pontuações.
+
+publishToWordpress: Publicação automática via Webhook WordPress.
+
+Formato de Resposta:
+A IA retorna sempre em formato JSON estruturado, pronto para ser consumido pela fila de geração ou editor manual.
+
+⚙️ Fila de Geração + Publicação Automática
+Fila Inteligente:
+Os conteúdos gerados vão automaticamente para uma fila.
+
+Podem ser revisados, otimizados, ou enviados diretamente para o WordPress.
+
+Integração WordPress:
+Sistema conectado via Webhook com autenticação por token.
+
+Permite envio de conteúdo com imagem, slug, metadados, e links internos prontos.
+
+🧠 Estratégia de IA Conversacional
+O sistema adota uma abordagem dupla para interação com a IA:
+
+Modo	Descrição
+Autônomo (API)	Geração de artigos por comandos diretos. Ideal para uso rápido e em massa.
+Conversacional (Chat)	Geração passo-a-passo com orientação e sugestões. Ideal para usuários menos técnicos ou para garantir qualidade refinada.
+
+
 
 Este projeto é propriedade privada da agência. Todos os direitos reservados.
 
