@@ -1,13 +1,15 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Node",
     "outDir": "api-dist",
-    "rootDir": "api",
-    "strict": true,
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "Node",
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "skipLibCheck": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "strict": true
   },
   "include": ["api"]
 }
