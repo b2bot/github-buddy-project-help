@@ -16,8 +16,8 @@ export async function GET(req: Request) {
     'https://www.googleapis.com/auth/business.manage',
 	'https://www.googleapis.com/auth/userinfo.profile',
 	'https://www.googleapis.com/auth/analytics.edit',
-	'https://www.googleapis.com/auth/analytics.manage.users.readonly'
-	'https://www.googleapis.com/auth/analytics.user.deletion'
+	'https://www.googleapis.com/auth/analytics.manage.users.readonly',
+	'https://www.googleapis.com/auth/analytics.user.deletion',
   ];
 
   const url = oauth2Client.generateAuthUrl({
