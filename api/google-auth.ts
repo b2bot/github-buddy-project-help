@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 
+
 const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-callback';
 
 export async function GET(req: Request) {
