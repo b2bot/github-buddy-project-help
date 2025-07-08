@@ -31,7 +31,7 @@ export function Header() {
         </div>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <NavLink to="/posts" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+          <NavLink to="/posts" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground" }`}>
             Posts
           </NavLink>
           <NavLink to="/strategy" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>

@@ -13,10 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { WordpressIntegration } from "./Integrations/WordpressIntegration";
 
 export default function Integrations() {
-  // OpenAI states
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
-  const [isOpenaiActive, setIsOpenaiActive] = useState(false);
-  const [isVerifyingOpenai, setIsVerifyingOpenai] = useState(false);
+
 
   // Google Analytics states
   const [gaViewId, setGaViewId] = useState("");
@@ -32,27 +29,7 @@ export default function Integrations() {
 
   const { toast } = useToast();
 
-  const handleVerifyOpenAI = async () => {
-    setIsVerifyingOpenai(true);
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    if (openaiApiKey) {
-      toast({
-        title: "OpenAI verificado!",
-        description: "Conexão com OpenAI estabelecida com sucesso."
-      });
-      setIsOpenaiActive(true);
-    } else {
-      toast({
-        title: "Erro na verificação OpenAI",
-        description: "Verifique a API Key.",
-        variant: "destructive"
-      });
-    }
-    
-    setIsVerifyingOpenai(false);
-  };
+  
 
   const handleVerifyGA = async () => {
     setIsVerifyingGa(true);
@@ -112,10 +89,7 @@ export default function Integrations() {
               <Globe className="h-4 w-4" />
               WordPress
             </TabsTrigger>
-            <TabsTrigger value="openai" className="flex items-center gap-2">
-              <Key className="h-4 w-4" />
-              OpenAI
-            </TabsTrigger>
+
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -131,66 +105,7 @@ export default function Integrations() {
             <WordpressIntegration />
           </TabsContent>
 
-          {/* OpenAI Tab */}
-          <TabsContent value="openai" className="space-y-6">
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Key className="h-5 w-5" />
-                  <span>Configuração OpenAI</span>
-                  {isOpenaiActive && (
-                    <Badge className="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                      Conectado
-                    </Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="openai-key">API Key</Label>
-                  <Input
-                    id="openai-key"
-                    type="password"
-                    placeholder="sk-..."
-                    value={openaiApiKey}
-                    onChange={(e) => setOpenaiApiKey(e.target.value)}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Sua chave API do OpenAI para geração de conteúdo
-                  </p>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="openai-active"
-                      checked={isOpenaiActive}
-                      onCheckedChange={setIsOpenaiActive}
-                    />
-                    <Label htmlFor="openai-active">Integração Ativa</Label>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleVerifyOpenAI}
-                    disabled={isVerifyingOpenai || !openaiApiKey}
-                    variant="outline"
-                  >
-                    {isVerifyingOpenai ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Verificando...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Verificar API
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
           {/* Google Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
