@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, PenTool } from "lucide-react";
+import { Moon, Sun, PenTool, FileText, TrendingUp, Settings, Zap, BarChart3, MessageSquare, Users } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
@@ -31,29 +31,37 @@ export function Header() {
         </div>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <NavLink to="/posts" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground" }`}>
-            Posts
+          <NavLink to="/posts" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground" }`}>
+            <FileText className="h-4 w-4" />
+            <span>Posts</span>
           </NavLink>
-          <NavLink to="/strategy" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Estratégia
+          <NavLink to="/strategy" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <TrendingUp className="h-4 w-4" />
+            <span>Estratégia</span>
           </NavLink>
-          <NavLink to="/integrations" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Integrações
+          <NavLink to="/integrations" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <Zap className="h-4 w-4" />
+            <span>Integrações</span>
           </NavLink>
-          <NavLink to="/manual" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Manual
+          <NavLink to="/conteudo" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <PenTool className="h-4 w-4" />
+            <span>Conteúdo</span>
           </NavLink>
-          <NavLink to="/chat" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Chat
+          <NavLink to="/chat" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <MessageSquare className="h-4 w-4" />
+            <span>Chat</span>
           </NavLink>
-          <NavLink to="/performance" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Performance
+          <NavLink to="/performance" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <BarChart3 className="h-4 w-4" />
+            <span>Performance</span>
           </NavLink>
-          <NavLink to="/analytics" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Analytics
+          <NavLink to="/analytics" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <BarChart3 className="h-4 w-4" />
+            <span>Analytics</span>
           </NavLink>
-          <NavLink to="/settings" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            Configurações
+          <NavLink to="/settings" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+            <Settings className="h-4 w-4" />
+            <span>Configurações</span>
           </NavLink>
         </nav>
 

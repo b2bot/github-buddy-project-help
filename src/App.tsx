@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import Posts from "./pages/Posts";
 import Strategy from "./pages/Strategy";
 import Integrations from "./pages/Integrations";
-import Manual from "./pages/Manual";
+import Conteudo from "./pages/Conteudo";
 import Chat from "./pages/Chat";
 import Performance from "./pages/Performance";
 import Analytics from "./pages/Analytics";
@@ -20,22 +20,21 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Posts />} />
+            <Route path="/" element={<Index />} />
             <Route path="/posts" element={<Posts />} />
             <Route path="/strategy" element={<Strategy />} />
             <Route path="/integrations" element={<Integrations />} />
-            <Route path="/manual" element={<Manual />} />
+            <Route path="/conteudo" element={<Conteudo />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/performance" element={<Performance />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

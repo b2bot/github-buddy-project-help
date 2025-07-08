@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Search, Plus, Users, Calendar, CheckCircle2, Clock, Edit3, Eye, MoreHorizontal, Trash2, Share, RefreshCw } from "lucide-react";
+import { Search, Users, Calendar, CheckCircle2, Clock, Edit3, Eye, MoreHorizontal, Trash2, Share, RefreshCw, PenTool } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { CreatePostModal } from "@/components/posts/CreatePostModal";
 import { CreatePostSetModal } from "@/components/posts/CreatePostSetModal";
@@ -20,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { wordpress } from "@/integrations/wordpress";
+import { useNavigate } from "react-router-dom";
 
 interface Post {
   id: string;
@@ -72,8 +72,8 @@ export default function Posts() {
   const [activeTab, setActiveTab] = useState("posts");
   const { toast } = useToast();
   const [generationQueue, setGenerationQueue] = useState<GenerationItem[]>([]);
+  const navigate = useNavigate();
 
-  // Load posts from localStorage on mount
   useEffect(() => {
     const loadPosts = () => {
       const draftPosts = JSON.parse(localStorage.getItem('draftPosts') || '[]');
@@ -91,7 +91,6 @@ export default function Posts() {
 
     loadPosts();
 
-    // Listen for post events from Manual page
     const handlePostSaved = (event: CustomEvent) => {
       const newPost = event.detail;
       setPosts(prevPosts => [newPost, ...prevPosts]);
@@ -133,7 +132,6 @@ export default function Posts() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  // Calculate status counts from actual posts
   const statusCounts = {
     draft: posts.filter(p => p.status === 'draft').length,
     pending: posts.filter(p => p.status === 'pending').length,
@@ -149,7 +147,6 @@ export default function Posts() {
   const handleDeletePost = (post: Post) => {
     setPosts(prevPosts => prevPosts.filter(p => p.id !== post.id));
     
-    // Remove from localStorage
     const draftPosts = JSON.parse(localStorage.getItem('draftPosts') || '[]').filter((p: any) => p.id !== post.id);
     const scheduledPosts = JSON.parse(localStorage.getItem('scheduledPosts') || '[]').filter((p: any) => p.id !== post.id);
     const publishedPosts = JSON.parse(localStorage.getItem('publishedPosts') || '[]').filter((p: any) => p.id !== post.id);
@@ -252,14 +249,13 @@ export default function Posts() {
             <h1 className="text-3xl font-bold">Posts</h1>
             <p className="text-muted-foreground">Crie, revise e aprove os posts do seu blog.</p>
           </div>
-          <div className="flex gap-8">
-            <Button variant="outline" onClick={() => setCreateModalOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Criar Post
-            </Button>
-            <Button onClick={() => setCreateSetModalOpen(true)} className="gradient-primary">
-              <Users className="mr-2 h-4 w-4" />
-              Criar Conjunto de Posts
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/conteudo')} 
+              className="bg-gradient-primary hover:opacity-90 flex items-center space-x-2"
+            >
+              <PenTool className="mr-2 h-4 w-4" />
+              📝 Criar Conteúdo
             </Button>
           </div>
         </div>
@@ -470,11 +466,11 @@ export default function Posts() {
                       <p className="text-muted-foreground mb-4">
                         {searchTerm || statusFilter !== "all" || categoryFilter !== "all" 
                           ? "Tente ajustar os filtros ou criar um novo post." 
-                          : "Comece criando seu primeiro post."}
+                          : "Comece criando seu primeiro conteúdo."}
                       </p>
-                      <Button onClick={() => setCreateModalOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Criar Primeiro Post
+                      <Button onClick={() => navigate('/conteudo')} className="bg-gradient-primary">
+                        <PenTool className="mr-2 h-4 w-4" />
+                        📝 Criar Conteúdo
                       </Button>
                     </div>
                   </CardContent>
@@ -561,7 +557,6 @@ export default function Posts() {
       <CreatePostModal 
         open={createModalOpen} 
         onOpenChange={setCreateModalOpen}
-        editPost={editPost}
         onPostCreated={(post) => {
           setPosts(prev => [post, ...prev]);
           setCreateModalOpen(false);
