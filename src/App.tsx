@@ -9,6 +9,13 @@ import Index from "./pages/Index";
 import Posts from "./pages/Posts";
 import CreativeAssistant from "./pages/CreativeAssistant";
 import CreativeAssistantHistory from "./pages/CreativeAssistantHistory";
+import CreativeAssistantSocialPost from "./pages/CreativeAssistantSocialPost";
+import CreativeAssistantEmail from "./pages/CreativeAssistantEmail";
+import CreativeAssistantAdsSocial from "./pages/CreativeAssistantAdsSocial";
+import CreativeAssistantAdsGoogle from "./pages/CreativeAssistantAdsGoogle";
+import CreativeAssistantLinkBio from "./pages/CreativeAssistantLinkBio";
+import CreativeAssistantFAQ from "./pages/CreativeAssistantFAQ";
+import CreativeAssistantObjections from "./pages/CreativeAssistantObjections";
 import Strategy from "./pages/Strategy";
 import Integrations from "./pages/Integrations";
 import Conteudo from "./pages/Conteudo";
@@ -32,6 +39,13 @@ const App = () => (
             <Route path="/posts" element={<Posts />} />
             <Route path="/creative-assistant" element={<CreativeAssistant />} />
             <Route path="/creative-assistant/history" element={<CreativeAssistantHistory />} />
+            <Route path="/creative-assistant/social-post" element={<CreativeAssistantSocialPost />} />
+            <Route path="/creative-assistant/email" element={<CreativeAssistantEmail />} />
+            <Route path="/creative-assistant/ads-social" element={<CreativeAssistantAdsSocial />} />
+            <Route path="/creative-assistant/ads-google" element={<CreativeAssistantAdsGoogle />} />
+            <Route path="/creative-assistant/link-bio" element={<CreativeAssistantLinkBio />} />
+            <Route path="/creative-assistant/faq" element={<CreativeAssistantFAQ />} />
+            <Route path="/creative-assistant/objections" element={<CreativeAssistantObjections />} />
             <Route path="/strategy" element={<Strategy />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/conteudo" element={<Conteudo />} />
