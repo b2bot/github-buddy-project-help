@@ -1,7 +1,7 @@
 
 # Partner SEO - Ferramenta de Otimização de Conteúdo
 
-Uma ferramenta interna para agências que automatiza a criação, otimização e publicação de artigos SEO usando IA.
+Uma ferramenta interna para agências que automatiza a criação, otimização e publicação de artigos SEO usando IA
 
 ## 🚀 Funcionalidades 
 
