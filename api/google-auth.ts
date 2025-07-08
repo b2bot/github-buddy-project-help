@@ -1,4 +1,14 @@
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import { google } from 'googleapis';
+
+const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-callback';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID!,
+    process.env.GOOGLE_CLIENT_SECRET!,
+    redirectUri
+  );
 
 
 const redirectUri = 'https://github-buddy-project-help.vercel.app/api/google-callback';
