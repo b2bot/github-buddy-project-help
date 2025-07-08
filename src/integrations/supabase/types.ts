@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      google_tokens: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          expiry_date: number | null
+          id: string
+          refresh_token: string | null
+          scope: string | null
+          token_type: string | null
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          expiry_date?: number | null
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          expiry_date?: number | null
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
