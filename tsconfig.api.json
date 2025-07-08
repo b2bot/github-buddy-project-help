@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "api-dist",
     "module": "CommonJS",
     "target": "ESNext",
     "moduleResolution": "Node",
