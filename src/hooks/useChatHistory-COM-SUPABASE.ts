@@ -1,168 +1,152 @@
 
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
-interface Message {
+export interface Message {
   sender: 'user' | 'assistant';
   content: string;
-  created_at: string;
+  created_at: Date;
 }
 
-interface ChatHistory {
+export interface ChatHistory {
   id: string;
   title: string;
   messages: Message[];
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 export function useChatHistory() {
   const [chatHistories, setChatHistories] = useState<ChatHistory[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const loadChatHistories = async () => {
-    try {
-      setIsLoading(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('No user found');
-        return;
-      }
+    if (!user) {
+      setChatHistories([]);
+      setLoading(false);
+      return;
+    }
 
+    try {
       const { data, error } = await supabase
         .from('chat_histories')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setChatHistories(data || []);
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        messages: Array.isArray(item.messages) ? item.messages as Message[] : [],
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        user_id: item.user_id
+      }));
+
+      setChatHistories(transformedData);
     } catch (error) {
       console.error('Error loading chat histories:', error);
-      toast({
-        title: "Erro ao carregar histórico",
-        description: "Não foi possível carregar o histórico de conversas.",
-        variant: "destructive"
-      });
+      setChatHistories([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const createNewChat = async (title: string): Promise<ChatHistory | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Usuário não autenticado",
-          description: "Você precisa estar logado para usar o chat.",
-          variant: "destructive"
-        });
-        return null;
-      }
+  const saveChatHistory = async (title: string, messages: Message[]) => {
+    if (!user) return null;
 
+    try {
       const { data, error } = await supabase
         .from('chat_histories')
-        .insert([
-          {
-            user_id: user.id,
-            title: title,
-            messages: []
-          }
-        ])
+        .insert({
+          title,
+          messages: JSON.stringify(messages),
+          user_id: user.id
+        })
         .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      const newChat = data as ChatHistory;
-      setChatHistories(prev => [newChat, ...prev]);
-      
-      return newChat;
+      const newHistory: ChatHistory = {
+        id: data.id,
+        title: data.title,
+        messages: Array.isArray(data.messages) ? data.messages as Message[] : JSON.parse(data.messages as string),
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        user_id: data.user_id
+      };
+
+      setChatHistories(prev => [newHistory, ...prev]);
+      return newHistory;
     } catch (error) {
-      console.error('Error creating new chat:', error);
-      toast({
-        title: "Erro ao criar chat",
-        description: "Não foi possível criar um novo chat.",
-        variant: "destructive"
-      });
+      console.error('Error saving chat history:', error);
       return null;
     }
   };
 
-  const updateChat = async (chatId: string, messages: Message[]) => {
+  const updateChatHistory = async (id: string, title: string, messages: Message[]) => {
+    if (!user) return;
+
     try {
       const { error } = await supabase
         .from('chat_histories')
-        .update({ 
-          messages: messages,
+        .update({
+          title,
+          messages: JSON.stringify(messages),
           updated_at: new Date().toISOString()
         })
-        .eq('id', chatId);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // Update local state
-      setChatHistories(prev => 
-        prev.map(chat => 
-          chat.id === chatId 
-            ? { ...chat, messages, updated_at: new Date().toISOString() }
+      setChatHistories(prev =>
+        prev.map(chat =>
+          chat.id === id
+            ? { ...chat, title, messages, updated_at: new Date().toISOString() }
             : chat
         )
       );
     } catch (error) {
-      console.error('Error updating chat:', error);
-      toast({
-        title: "Erro ao salvar conversa",
-        description: "Não foi possível salvar a conversa.",
-        variant: "destructive"
-      });
+      console.error('Error updating chat history:', error);
     }
   };
 
-  const deleteChat = async (chatId: string) => {
+  const deleteChatHistory = async (id: string) => {
+    if (!user) return;
+
     try {
       const { error } = await supabase
         .from('chat_histories')
         .delete()
-        .eq('id', chatId);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      setChatHistories(prev => prev.filter(chat => chat.id !== chatId));
-      
-      toast({
-        title: "Chat excluído",
-        description: "A conversa foi excluída com sucesso.",
-      });
+      setChatHistories(prev => prev.filter(chat => chat.id !== id));
     } catch (error) {
-      console.error('Error deleting chat:', error);
-      toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível excluir a conversa.",
-        variant: "destructive"
-      });
+      console.error('Error deleting chat history:', error);
     }
   };
 
+  useEffect(() => {
+    loadChatHistories();
+  }, [user]);
+
   return {
     chatHistories,
-    isLoading,
-    loadChatHistories,
-    createNewChat,
-    updateChat,
-    deleteChat
+    loading,
+    saveChatHistory,
+    updateChatHistory,
+    deleteChatHistory,
+    loadChatHistories
   };
 }

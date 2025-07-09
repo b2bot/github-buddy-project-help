@@ -44,32 +44,52 @@ export type Database = {
       google_tokens: {
         Row: {
           access_token: string
+          connected_at: string | null
           created_at: string | null
-          expiry_date: number | null
+          email: string | null
+          expires_at: number | null
           id: string
+          id_token: string | null
           refresh_token: string | null
-          scope: string | null
-          token_type: string | null
+          service: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           access_token: string
+          connected_at?: string | null
           created_at?: string | null
-          expiry_date?: number | null
+          email?: string | null
+          expires_at?: number | null
           id?: string
+          id_token?: string | null
           refresh_token?: string | null
-          scope?: string | null
-          token_type?: string | null
+          service: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           access_token?: string
+          connected_at?: string | null
           created_at?: string | null
-          expiry_date?: number | null
+          email?: string | null
+          expires_at?: number | null
           id?: string
+          id_token?: string | null
           refresh_token?: string | null
-          scope?: string | null
-          token_type?: string | null
+          service?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "google_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
