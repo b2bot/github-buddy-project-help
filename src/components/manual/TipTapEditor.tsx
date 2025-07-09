@@ -3,6 +3,7 @@ import React, { forwardRef, useImperativeHandle } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
 import { Button } from '@/components/ui/button';
 import { 
   Bold, 
@@ -14,7 +15,7 @@ import {
   Redo,
   Heading1,
   Heading2,
-  Link
+  Link as LinkIcon
 } from 'lucide-react';
 
 interface TipTapEditorProps {
@@ -31,6 +32,9 @@ export const TipTapEditor = forwardRef<any, TipTapEditorProps>(
         Image.configure({
           inline: true,
           allowBase64: true,
+        }),
+        Link.configure({
+          openOnClick: false,
         }),
       ],
       content,
@@ -57,7 +61,7 @@ export const TipTapEditor = forwardRef<any, TipTapEditorProps>(
     const addLink = () => {
       const url = window.prompt('URL:');
       if (url) {
-        editor.chain().focus().toggleLink({ href: url }).run();
+        editor.chain().focus().setLink({ href: url }).run();
       }
     };
 
@@ -133,7 +137,7 @@ export const TipTapEditor = forwardRef<any, TipTapEditorProps>(
             onClick={addLink}
             className={editor.isActive('link') ? 'bg-muted' : ''}
           >
-            <Link className="h-4 w-4" />
+            <LinkIcon className="h-4 w-4" />
           </Button>
 
           <div className="border-l mx-1" />
@@ -164,3 +168,6 @@ export const TipTapEditor = forwardRef<any, TipTapEditorProps>(
 );
 
 TipTapEditor.displayName = 'TipTapEditor';
+
+// Add default export
+export default TipTapEditor;

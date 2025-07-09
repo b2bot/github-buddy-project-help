@@ -2,26 +2,24 @@
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TipTapEditor } from './TipTapEditor';
-import { Sparkles, Calendar, Clock, FileText, Image, Wand2 } from 'lucide-react';
+import { Sparkles, FileText, Wand2 } from 'lucide-react';
 import { openai } from '@/integrations/openai';
 import { useToast } from '@/hooks/use-toast';
 
 interface CreatePostWizardProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onPostCreated?: (post: any) => void;
+  onImport?: (content: string, seoData?: any) => void;
 }
 
 type AIProvider = "openai" | "fallback" | "fallback_error";
 
-export function CreatePostWizard({ isOpen, onClose, onPostCreated }: CreatePostWizardProps) {
-  const [currentStep, setCurrentStep] = useState(1);
+export function CreatePostWizard({ isOpen = true, onClose, onPostCreated, onImport }: CreatePostWizardProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -53,14 +51,13 @@ export function CreatePostWizard({ isOpen, onClose, onPostCreated }: CreatePostW
       // Generate content
       const response = await openai.generateContent({
         keyword,
-        type: 'post',
         tone: 'professional',
         length: 'medium'
       });
 
       if (response.success) {
         setContent(response.content);
-        setProvider(response.provider as AIProvider);
+        setProvider((response.provider as AIProvider) || "openai");
         
         // Show provider-specific messages
         if (response.provider === "openai") {
@@ -89,19 +86,41 @@ export function CreatePostWizard({ isOpen, onClose, onPostCreated }: CreatePostW
     }
   };
 
-  if (!isOpen) return null;
+  const handleCreatePost = () => {
+    if (onPostCreated) {
+      onPostCreated({
+        title,
+        content,
+        keyword,
+        provider
+      });
+    }
+    if (onImport) {
+      onImport(content, {
+        keyword,
+        title
+      });
+    }
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  if (!isOpen && onClose) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div className="p-6 border-b">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Assistente de Criação</h2>
-            <Button variant="ghost" onClick={onClose}>✕</Button>
+    <div className={onClose ? "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" : ""}>
+      <div className={onClose ? "bg-background rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden" : "w-full"}>
+        {onClose && (
+          <div className="p-6 border-b">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Assistente de Criação</h2>
+              <Button variant="ghost" onClick={onClose}>✕</Button>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className={onClose ? "p-6 overflow-y-auto max-h-[calc(90vh-140px)]" : "space-y-6"}>
           <Tabs defaultValue="generate" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="generate">
@@ -237,29 +256,21 @@ export function CreatePostWizard({ isOpen, onClose, onPostCreated }: CreatePostW
           </Tabs>
         </div>
 
-        <div className="p-6 border-t bg-muted/50">
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={() => {
-                if (onPostCreated) {
-                  onPostCreated({
-                    title,
-                    content,
-                    keyword,
-                    provider
-                  });
-                }
-                onClose();
-              }}
-              disabled={!title.trim() || !content.trim()}
-            >
-              Criar Post
-            </Button>
+        {onClose && (
+          <div className="p-6 border-t bg-muted/50">
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleCreatePost}
+                disabled={!title.trim() || !content.trim()}
+              >
+                Criar Post
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

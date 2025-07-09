@@ -288,7 +288,7 @@ export default function Manual() {
         metaDescription,
         altText,
         keyword,
-        status: "publish" as const,
+        status: "published" as const, // Fix: changed from "publish" to "published"
         featuredImageUrl: featuredImagePreview || undefined
       };
 
@@ -374,7 +374,7 @@ export default function Manual() {
         keyword,
         featuredImageUrl: featuredImagePreview || undefined,
         scheduledAt,
-        status: "future" as const
+        status: "scheduled" as const // Fix: changed from "future" to "scheduled"
       };
 
       const result = await wordpress.schedulePost(postData, scheduledAt);

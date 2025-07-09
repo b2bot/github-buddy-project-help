@@ -39,11 +39,11 @@ export function useChatHistory() {
 
       if (error) throw error;
 
-      // Transform the data to match our interface
+      // Transform the data to match our interface with proper type casting
       const transformedData = (data || []).map(item => ({
         id: item.id,
         title: item.title,
-        messages: Array.isArray(item.messages) ? item.messages as Message[] : [],
+        messages: Array.isArray(item.messages) ? (item.messages as unknown as Message[]) : [],
         created_at: item.created_at,
         updated_at: item.updated_at,
         user_id: item.user_id
@@ -77,7 +77,7 @@ export function useChatHistory() {
       const newHistory: ChatHistory = {
         id: data.id,
         title: data.title,
-        messages: Array.isArray(data.messages) ? data.messages as Message[] : JSON.parse(data.messages as string),
+        messages: Array.isArray(data.messages) ? (data.messages as unknown as Message[]) : JSON.parse(data.messages as string),
         created_at: data.created_at,
         updated_at: data.updated_at,
         user_id: data.user_id
