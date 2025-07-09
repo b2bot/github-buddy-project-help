@@ -22,7 +22,11 @@ import Chat from "./pages/Chat";
 import Performance from "./pages/Performance";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-
+import Login from './pages/login-pages/Login';
+import Cadastro from './pages/login-pages/Cadastro';
+import EsqueciSenha from './pages/login-pages/EsqueciSenha';
+import RedefinirSenha from './pages/login-pages/RedefinirSenha';
+import VerificarCodigo from './pages/login-pages/VerificarCodigo';
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -32,8 +36,13 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>          
-            <Route path="/" element={<Posts />} />
+          <Routes>   
+			<Route path="/login" element={<Login />} />
+			<Route path="/esquecisenha" element={<EsqueciSenha />} />
+			<Route path="/redefinirsenha" element={<RedefinirSenha />} />
+			<Route path="/verificarcodigo" element={<VerificarCodigo />} />
+			<Route path="/cadastro" element={<Cadastro />} />
+			<Route path="/" element={<Posts />} />
             <Route path="/posts" element={<Posts />} />
             <Route path="/creative-assistant" element={<CreativeAssistant />} />
             <Route path="/creative-assistant/history" element={<CreativeAssistantHistory />} />
