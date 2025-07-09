@@ -20,7 +20,6 @@ import Integrations from "./pages/Integrations";
 import Conteudo from "./pages/Conteudo";
 import Chat from "./pages/Chat";
 import Performance from "./pages/Performance";
-import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -50,7 +49,6 @@ const App = () => (
             <Route path="/conteudo" element={<Conteudo />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/performance" element={<Performance />} />
-            <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
