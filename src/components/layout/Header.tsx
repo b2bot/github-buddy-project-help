@@ -58,10 +58,6 @@ export function Header() {
             <BarChart3 className="h-4 w-4" />
             <span>Performance</span>
           </NavLink>
-          <NavLink to="/analytics" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-            <BarChart3 className="h-4 w-4" />
-            <span>Analytics</span>
-          </NavLink>
           <NavLink to="/settings" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary flex items-center space-x-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
             <Settings className="h-4 w-4" />
             <span>Configurações</span>
