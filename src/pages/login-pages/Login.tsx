@@ -1,10 +1,47 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: "Email ou senha inválidos",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Redirecionando...",
+        });
+        navigate("/");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no login",
+        description: "Ocorreu um erro inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen">
@@ -16,52 +53,57 @@ const Login = () => {
             Acesse sua conta e continue otimizando com IA.
           </p>
 
-          <label className="text-sm text-gray-800">Email</label>
-          <input
-            type="email"
-            placeholder="seu@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full mt-1 mb-6 px-4 py-2 border border-gray-400 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
+          <form onSubmit={handleLogin}>
+            <label className="text-sm text-gray-800">Email</label>
+            <input
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full mt-1 mb-6 px-4 py-2 border border-gray-400 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            />
 
-          <label className="text-sm text-gray-800">Senha</label>
-          <input
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full mt-1 mb-2 px-4 py-2 border border-gray-400 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
+            <label className="text-sm text-gray-800">Senha</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full mt-1 mb-2 px-4 py-2 border border-gray-400 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            />
 
-          <div className="flex items-center justify-between text-sm mb-6">
-            <label className="flex items-center gap-2 text-gray-700">
-              <input type="checkbox" />
-              Lembrar
-            </label>
+            <div className="flex items-center justify-between text-sm mb-6">
+              <label className="flex items-center gap-2 text-gray-700">
+                <input type="checkbox" />
+                Lembrar
+              </label>
+              <Link
+                to="/esquecisenha"
+                className="text-purple-600 font-medium hover:underline"
+              >
+                Esqueceu sua senha?
+              </Link>
+            </div>
+
             <button
-              className="text-purple-600 font-medium"
-              onClick={() => navigate("/esquecisenha")}
+              type="submit"
+              disabled={loading}
+              className="w-full bg-purple-600 text-white py-3 rounded-md font-semibold hover:bg-purple-700 transition disabled:opacity-50"
             >
-              Esqueceu sua senha?
+              {loading ? "Acessando..." : "Acessar"}
             </button>
-          </div>
-
-          <button
-            onClick={() => alert("Login...")}
-            className="w-full bg-purple-600 text-white py-3 rounded-md font-semibold hover:bg-purple-700 transition"
-          >
-            Acessar
-          </button>
+          </form>
 
           <p className="text-sm text-center text-gray-700 mt-6">
             Ainda não tem uma conta?{" "}
-            <button
-              className="text-purple-600 font-medium"
-              onClick={() => navigate("/cadastro")}
+            <Link
+              to="/cadastro"
+              className="text-purple-600 font-medium hover:underline"
             >
               Cadastre-se agora
-            </button>
+            </Link>
           </p>
         </div>
       </div>

@@ -1,16 +1,37 @@
+
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, PenTool, FileText, TrendingUp, Settings, Zap, BarChart3, MessageSquare, Users, Sparkles } from "lucide-react";
+import { Moon, Sun, PenTool, FileText, TrendingUp, Settings, Zap, BarChart3, MessageSquare, Users, Sparkles, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
+  const { signOut, user } = useAuth();
+  const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no logout",
+        description: "Ocorreu um erro ao sair",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (!mounted) {
     return null;
@@ -64,15 +85,29 @@ export function Header() {
           </NavLink>
         </nav>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-        >
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+
+          {user && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleLogout}
+              title="Sair"
+            >
+              <LogOut className="h-[1.2rem] w-[1.2rem]" />
+              <span className="sr-only">Logout</span>
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   );
