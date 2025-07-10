@@ -2,8 +2,8 @@
 // Google OAuth Callback API - Versão Completa com Supabase
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://onnvpakhibftxpqeraur.supabase.co';
-const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ubnZwYWtoaWJmdHhwcWVyYXVyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTY1MzY0OCwiZXhwIjoyMDY1MjI5NjQ4fQ.WrhRsv6uH7cw';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://onnvpakhibftxpqeraur.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ubnZwYWtoaWJmdHhwcWVyYXVyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTY1MzY0OCwiZXhwIjoyMDY1MjI5NjQ4fQ.WrhRsv6uH7cw';
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
