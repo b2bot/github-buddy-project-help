@@ -41,6 +41,159 @@ export type Database = {
         }
         Relationships: []
       }
+      google_ads_accounts: {
+        Row: {
+          account_type: string | null
+          created_at: string
+          currency_code: string | null
+          customer_id: string
+          customer_name: string
+          google_token_id: string
+          id: string
+          time_zone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_type?: string | null
+          created_at?: string
+          currency_code?: string | null
+          customer_id: string
+          customer_name: string
+          google_token_id: string
+          id?: string
+          time_zone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_type?: string | null
+          created_at?: string
+          currency_code?: string | null
+          customer_id?: string
+          customer_name?: string
+          google_token_id?: string
+          id?: string
+          time_zone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_ads_accounts_google_token_id_fkey"
+            columns: ["google_token_id"]
+            isOneToOne: false
+            referencedRelation: "google_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_ads_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_analytics_properties: {
+        Row: {
+          account_id: string
+          account_name: string | null
+          created_at: string
+          google_token_id: string
+          id: string
+          property_id: string
+          property_name: string
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          account_id: string
+          account_name?: string | null
+          created_at?: string
+          google_token_id: string
+          id?: string
+          property_id: string
+          property_name: string
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          account_id?: string
+          account_name?: string | null
+          created_at?: string
+          google_token_id?: string
+          id?: string
+          property_id?: string
+          property_name?: string
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_analytics_properties_google_token_id_fkey"
+            columns: ["google_token_id"]
+            isOneToOne: false
+            referencedRelation: "google_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_analytics_properties_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_search_console_sites: {
+        Row: {
+          created_at: string
+          google_token_id: string
+          id: string
+          permission_level: string
+          site_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          google_token_id: string
+          id?: string
+          permission_level: string
+          site_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          google_token_id?: string
+          id?: string
+          permission_level?: string
+          site_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_search_console_sites_google_token_id_fkey"
+            columns: ["google_token_id"]
+            isOneToOne: false
+            referencedRelation: "google_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_search_console_sites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_tokens: {
         Row: {
           access_token: string

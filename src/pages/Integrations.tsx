@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,16 +14,22 @@ import {
   Zap, 
   Webhook,
   Settings,
-  ExternalLink
+  ExternalLink,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { WordpressIntegration } from "./Integrations/WordpressIntegration";
+import { useGoogleIntegrations } from "@/hooks/useGoogleIntegrations";
 
 interface IntegrationCard {
   name: string;
   description: string;
   icon: any;
+  service: string;
   status: 'connected' | 'available' | 'coming-soon';
   action?: () => void;
 }
@@ -32,6 +37,34 @@ interface IntegrationCard {
 export default function Integrations() {
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
+  const { integrations, loading, loadIntegrations, disconnectService } = useGoogleIntegrations();
+
+  // Verificar parâmetros da URL para feedback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+    const service = urlParams.get('service');
+
+    if (success === 'connected' && service) {
+      toast({
+        title: "Conectado com sucesso!",
+        description: `Sua conta Google ${service.replace('google_', '').replace('_', ' ')} foi conectada.`,
+      });
+      // Limpar URL
+      window.history.replaceState({}, '', '/integrations');
+      // Recarregar integrações
+      loadIntegrations();
+    } else if (error) {
+      toast({
+        title: "Erro na conexão",
+        description: "Não foi possível conectar sua conta Google. Tente novamente.",
+        variant: "destructive"
+      });
+      // Limpar URL
+      window.history.replaceState({}, '', '/integrations');
+    }
+  }, [toast, loadIntegrations]);
 
   const handleGoogleConnect = async (service: string) => {
     setIsConnecting(service);
@@ -67,34 +100,51 @@ export default function Integrations() {
     }
   };
 
+  const handleDisconnect = async (service: string) => {
+    try {
+      await disconnectService(service);
+      toast({
+        title: "Desconectado",
+        description: `Conta Google ${service.replace('google_', '').replace('_', ' ')} desconectada com sucesso.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao desconectar",
+        description: "Não foi possível desconectar a conta. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getIntegrationStatus = (service: string) => {
+    const integration = integrations.find(i => i.service === service);
+    return integration || { service, connected: false };
+  };
+
   const googleIntegrations: IntegrationCard[] = [
     {
       name: "Google Analytics",
       description: "Acompanhe métricas de tráfego, sessões e comportamento dos usuários",
       icon: BarChart3,
-      status: 'available',
-      action: () => handleGoogleConnect('analytics')
+      service: 'google_analytics',
+      status: getIntegrationStatus('google_analytics').connected ? 'connected' : 'available',
+      action: () => handleGoogleConnect('google_analytics')
     },
     {
       name: "Google Search Console",
       description: "Monitore performance de SEO, cliques e impressões de busca",
       icon: Search,
-      status: 'available',
-      action: () => handleGoogleConnect('search-console')
+      service: 'google_search_console',
+      status: getIntegrationStatus('google_search_console').connected ? 'connected' : 'available',
+      action: () => handleGoogleConnect('google_search_console')
     },
     {
       name: "Google Ads",
       description: "Gerencie campanhas de anúncios e acompanhe conversões",
       icon: Target,
-      status: 'available',
-      action: () => handleGoogleConnect('ads')
-    },
-    {
-      name: "Google Trends",
-      description: "Analise tendências de pesquisa e insights de mercado",
-      icon: TrendingUp,
-      status: 'available',
-      action: () => handleGoogleConnect('trends')
+      service: 'google_ads',
+      status: getIntegrationStatus('google_ads').connected ? 'connected' : 'available',
+      action: () => handleGoogleConnect('google_ads')
     }
   ];
 
@@ -103,12 +153,14 @@ export default function Integrations() {
       name: "LinkedIn",
       description: "Publique conteúdo profissional e acompanhe engajamento",
       icon: Share2,
+      service: 'linkedin',
       status: 'coming-soon'
     },
     {
       name: "Instagram",
       description: "Gerencie posts, stories e métricas de alcance",
       icon: Smartphone,
+      service: 'instagram',
       status: 'coming-soon'
     }
   ];
@@ -118,18 +170,14 @@ export default function Integrations() {
       name: "Google Tag Manager",
       description: "Gerencie tags de rastreamento sem código",
       icon: Settings,
+      service: 'gtm',
       status: 'coming-soon'
     },
     {
       name: "Pixel Meta Ads",
       description: "Rastreie conversões e otimize campanhas no Facebook",
       icon: Target,
-      status: 'coming-soon'
-    },
-    {
-      name: "Pixel Google Ads",
-      description: "Meça efetividade de anúncios e remarketing",
-      icon: Target,
+      service: 'meta_pixel',
       status: 'coming-soon'
     }
   ];
@@ -139,24 +187,14 @@ export default function Integrations() {
       name: "Webhook",
       description: "Integre com sistemas externos via webhooks personalizados",
       icon: Webhook,
+      service: 'webhook',
       status: 'coming-soon'
     },
     {
       name: "Zapier",
       description: "Automatize workflows conectando milhares de aplicações",
       icon: Zap,
-      status: 'coming-soon'
-    },
-    {
-      name: "Wix",
-      description: "Publique conteúdo diretamente no seu site Wix",
-      icon: Globe,
-      status: 'coming-soon'
-    },
-    {
-      name: "RD Station",
-      description: "Integre com automação de marketing e lead nurturing",
-      icon: Settings,
+      service: 'zapier',
       status: 'coming-soon'
     }
   ];
@@ -175,14 +213,23 @@ export default function Integrations() {
   };
 
   const getActionButton = (integration: IntegrationCard) => {
+    const status = getIntegrationStatus(integration.service);
+    
     if (integration.status === 'connected') {
       return (
         <div className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Gerenciar
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full text-red-600 hover:text-red-700">
+          {status.email && (
+            <p className="text-xs text-muted-foreground">
+              Conectado como: {status.email}
+            </p>
+          )}
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="w-full"
+            onClick={() => handleDisconnect(integration.service)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
             Desconectar
           </Button>
         </div>
@@ -193,11 +240,18 @@ export default function Integrations() {
       return (
         <Button 
           onClick={integration.action}
-          disabled={isConnecting === integration.name}
+          disabled={isConnecting === integration.service}
           className="w-full"
           size="sm"
         >
-          {isConnecting === integration.name ? "Conectando..." : "Conectar"}
+          {isConnecting === integration.service ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Conectando...
+            </>
+          ) : (
+            "Conectar"
+          )}
         </Button>
       );
     }
@@ -240,6 +294,94 @@ export default function Integrations() {
     </div>
   );
 
+  const StatusTable = () => (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Status das Conexões Google
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Serviço</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Última Sincronização</th>
+                  <th className="text-left p-2">Conta Conectada</th>
+                  <th className="text-left p-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {integrations.map((integration) => (
+                  <tr key={integration.service} className="border-b">
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        {integration.service === 'google_analytics' && <BarChart3 className="h-4 w-4" />}
+                        {integration.service === 'google_search_console' && <Search className="h-4 w-4" />}
+                        {integration.service === 'google_ads' && <Target className="h-4 w-4" />}
+                        {integration.service.replace('google_', '').replace('_', ' ').toUpperCase()}
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      {integration.connected ? (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle className="h-4 w-4" />
+                          Conectado
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-red-600">
+                          <XCircle className="h-4 w-4" />
+                          Não conectado
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {integration.connected && integration.lastSync ? (
+                        new Date(integration.lastSync).toLocaleString('pt-BR')
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {integration.email || '—'}
+                    </td>
+                    <td className="p-2">
+                      {integration.connected ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDisconnect(integration.service)}
+                        >
+                          Desconectar
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleGoogleConnect(integration.service)}
+                          disabled={isConnecting === integration.service}
+                        >
+                          {isConnecting === integration.service ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Conectar'
+                          )}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -251,7 +393,7 @@ export default function Integrations() {
         </div>
 
         <Tabs defaultValue="wordpress" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-6 bg-muted/50">
             <TabsTrigger value="wordpress" className="flex items-center gap-2">
               <Globe className="h-4 w-4" />
               WordPress
@@ -272,14 +414,16 @@ export default function Integrations() {
               <Settings className="h-4 w-4" />
               Mais
             </TabsTrigger>
+            <TabsTrigger value="status" className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Status
+            </TabsTrigger>
           </TabsList>
 
-          {/* WordPress Tab */}
           <TabsContent value="wordpress" className="space-y-6 mt-6">
             <WordpressIntegration />
           </TabsContent>
 
-          {/* Google Tab */}
           <TabsContent value="google" className="space-y-6 mt-6">
             <div className="space-y-4">
               <div>
@@ -288,11 +432,16 @@ export default function Integrations() {
                   Conecte-se aos serviços do Google para acessar dados de analytics, SEO e publicidade
                 </p>
               </div>
-              <IntegrationGrid integrations={googleIntegrations} />
+              {loading ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <IntegrationGrid integrations={googleIntegrations} />
+              )}
             </div>
           </TabsContent>
 
-          {/* Social Tab */}
           <TabsContent value="social" className="space-y-6 mt-6">
             <div className="space-y-4">
               <div>
@@ -305,7 +454,6 @@ export default function Integrations() {
             </div>
           </TabsContent>
 
-          {/* Tracking Tab */}
           <TabsContent value="tracking" className="space-y-6 mt-6">
             <div className="space-y-4">
               <div>
@@ -318,7 +466,6 @@ export default function Integrations() {
             </div>
           </TabsContent>
 
-          {/* More Tab */}
           <TabsContent value="more" className="space-y-6 mt-6">
             <div className="space-y-4">
               <div>
@@ -328,6 +475,24 @@ export default function Integrations() {
                 </p>
               </div>
               <IntegrationGrid integrations={moreIntegrations} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="status" className="space-y-6 mt-6">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Status das Conexões</h2>
+                <p className="text-muted-foreground">
+                  Monitore o status de todas as suas integrações Google
+                </p>
+              </div>
+              {loading ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <StatusTable />
+              )}
             </div>
           </TabsContent>
         </Tabs>
