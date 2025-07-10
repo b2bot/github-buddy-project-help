@@ -57,7 +57,10 @@ export default async function handler(req, res) {
     if (!userResponse.ok) {
       return res.redirect('/integrations?error=user_info_failed');
     }
-
+    
+   
+    // Depois de userData chegar do Google...
+    console.log('🤖 userData.email:', userData.email);
     // Buscar usuário pelo email na tabela profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -68,7 +71,9 @@ export default async function handler(req, res) {
     if (profileError || !profile) {
       return res.redirect('/integrations?error=user_not_found');
     }
-
+    console.log('🔍 profile:', profile);
+    console.log('❗ profileError:', profileError);
+    
     // Calcular expires_at em Unix timestamp
     const expiresAt = tokenData.expires_in 
       ? Math.floor(Date.now() / 1000) + tokenData.expires_in 
