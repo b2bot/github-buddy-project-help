@@ -18,7 +18,7 @@ import CreativeAssistantLinkBio from "./pages/CreativeAssistantLinkBio";
 import CreativeAssistantFAQ from "./pages/CreativeAssistantFAQ";
 import CreativeAssistantObjections from "./pages/CreativeAssistantObjections";
 import Strategy from "./pages/Strategy";
-import Integrations from "./src/pages/Integrations";
+import Integrations from "./pages/Integrations";
 import Conteudo from "./pages/Conteudo";
 import Chat from "./pages/Chat";
 import Performance from "./pages/Performance";
