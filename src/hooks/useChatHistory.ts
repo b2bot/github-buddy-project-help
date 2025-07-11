@@ -39,7 +39,7 @@ export function useChatHistory() {
         return;
       }
 
-      const response = await fetch('/api/chat-clarencio', {
+      const response = await fetch('/api/chat-clarencio.js', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +94,7 @@ export function useChatHistory() {
         }
       ];
 
-      const response = await fetch('/api/chat-clarencio', {
+      const response = await fetch('/api/chat-clarencio.js', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -140,7 +140,7 @@ export function useChatHistory() {
         throw new Error('Usuário não autenticado');
       }
 
-      const response = await fetch('/api/chat-clarencio', {
+      const response = await fetch('/api/chat-clarencio.js', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -190,7 +190,7 @@ export function useChatHistory() {
         throw new Error('Usuário não autenticado');
       }
 
-      const response = await fetch('/api/chat-clarencio', {
+      const response = await fetch('/api/chat-clarencio.js', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
