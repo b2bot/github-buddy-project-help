@@ -11,17 +11,30 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-  console.log('[Clarencio][API] Iniciando processamento da requisição:', req.method);
-  
-  // CORS Headers
-  if (req.method === "OPTIONS") {
-    res.status(200)
-      .setHeader("Access-Control-Allow-Origin", "*")
-      .setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS")
-      .setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
-      .end();
-    return;
+  // --- CORS UNIVERSAL ---
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
+  console.log('[Clarencio][API] Request:', req.method);
+
+  // --- AUTENTICAÇÃO ---
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.replace("Bearer ", "");
+  if (!token) {
+    console.error('[Clarencio][API] Token não fornecido');
+    return res.status(401).json({ error: "Token de autenticação necessário" });
   }
+  // Injeta token no client admin
+  supabaseAdmin.auth.setAuth(token);
+
+  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser();
+  if (userErr || !userData.user) {
+    console.error('[Clarencio][API] Auth error:', userErr);
+    return res.status(401).json({ error: "Token inválido ou expirado" });
+  }
+  const userId = userData.user.id;
 
   try {
     // Verificar autenticação
