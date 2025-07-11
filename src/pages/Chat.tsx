@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Plus, Send, FileText, Bot, User, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useChatHistory } from "@/hooks/useChatHistory";
-import { callClarencioAPI, generateContent, type ChatMessage } from "@/integrations/openai";
+import { generateContent, type ChatMessage } from "@/integrations/openai";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 
@@ -148,6 +148,22 @@ export default function Chat() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const callClarencioAPI = async (messages: ChatMessage[]) => {
+    const response = await fetch('/api/chat-clarencio', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ messages }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    return await response.json();
   };
 
   const handleSelectChat = (chat: ChatHistory) => {

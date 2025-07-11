@@ -22,47 +22,47 @@ export function useChatHistory() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token;
+  };
+
   const loadChatHistories = async () => {
     try {
       setIsLoading(true);
       console.log('[Clarencio][useChatHistory] Iniciando carregamento do histórico');
       
-      // Verificar se o usuário está autenticado
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('[Clarencio][useChatHistory] Erro ao verificar usuário:', userError);
-        throw userError;
-      }
-
-      if (!user) {
+      const token = await getAuthToken();
+      if (!token) {
         console.log('[Clarencio][useChatHistory] Usuário não autenticado');
         setChatHistories([]);
         return;
       }
 
-      console.log('[Clarencio][useChatHistory] Usuário autenticado:', user.id);
+      const response = await fetch('/api/chat-clarencio', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      // Buscar histórico do usuário
-      const { data, error } = await supabase
-        .from('chat_histories')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('[Clarencio][useChatHistory] Erro na consulta:', error);
-        throw error;
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Permissão negada. Tente fazer logout e login novamente.');
+        }
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
 
-      console.log('[Clarencio][useChatHistory] Histórico carregado com sucesso:', data?.length || 0, 'conversas');
+      const data = await response.json();
+      console.log('[Clarencio][useChatHistory] Histórico carregado com sucesso:', data.length || 0, 'conversas');
       setChatHistories(data || []);
       
     } catch (error) {
       console.error('[Clarencio][useChatHistory] Erro ao carregar histórico:', error);
       toast({
         title: "Erro ao carregar histórico",
-        description: "Não foi possível carregar o histórico de conversas. Verifique sua conexão.",
+        description: error instanceof Error ? error.message : "Não foi possível carregar o histórico de conversas.",
         variant: "destructive"
       });
       setChatHistories([]);
@@ -75,15 +75,8 @@ export function useChatHistory() {
     try {
       console.log('[Clarencio][useChatHistory] Criando novo chat:', title);
       
-      // Verificar se o usuário está autenticado
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('[Clarencio][useChatHistory] Erro ao verificar usuário:', userError);
-        throw userError;
-      }
-
-      if (!user) {
+      const token = await getAuthToken();
+      if (!token) {
         console.error('[Clarencio][useChatHistory] Usuário não autenticado para criar chat');
         toast({
           title: "Usuário não autenticado",
@@ -93,9 +86,6 @@ export function useChatHistory() {
         return null;
       }
 
-      console.log('[Clarencio][useChatHistory] Criando chat para usuário:', user.id);
-
-      // Criar mensagem system inicial
       const initialMessages: Message[] = [
         {
           role: 'system',
@@ -104,37 +94,37 @@ export function useChatHistory() {
         }
       ];
 
-      // Inserir novo chat
-      const { data, error } = await supabase
-        .from('chat_histories')
-        .insert([
-          {
-            user_id: user.id,
-            title: title,
-            messages: initialMessages
-          }
-        ])
-        .select()
-        .single();
+      const response = await fetch('/api/chat-clarencio', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'create',
+          title: title,
+          messages: initialMessages
+        })
+      });
 
-      if (error) {
-        console.error('[Clarencio][useChatHistory] Erro ao inserir chat:', error);
-        throw error;
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Permissão negada. Tente fazer logout e login novamente.');
+        }
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
 
-      const newChat = data as ChatHistory;
+      const newChat = await response.json();
       console.log('[Clarencio][useChatHistory] Novo chat criado com sucesso:', newChat.id);
 
-      // Atualizar lista local
       setChatHistories(prev => [newChat, ...prev]);
-      
       return newChat;
       
     } catch (error) {
       console.error('[Clarencio][useChatHistory] Erro ao criar chat:', error);
       toast({
         title: "Erro ao criar chat",
-        description: "Não foi possível criar um novo chat. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível criar um novo chat.",
         variant: "destructive"
       });
       return null;
@@ -145,20 +135,31 @@ export function useChatHistory() {
     try {
       console.log('[Clarencio][useChatHistory] Atualizando chat:', chatId, 'mensagens:', messages.length);
       
-      const { error } = await supabase
-        .from('chat_histories')
-        .update({ 
-          messages: messages,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', chatId);
-
-      if (error) {
-        console.error('[Clarencio][useChatHistory] Erro ao atualizar chat:', error);
-        throw error;
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Usuário não autenticado');
       }
 
-      // Atualizar estado local
+      const response = await fetch('/api/chat-clarencio', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'update',
+          chatId: chatId,
+          messages: messages
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Permissão negada. Tente fazer logout e login novamente.');
+        }
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
+
       setChatHistories(prev => 
         prev.map(chat => 
           chat.id === chatId 
@@ -173,9 +174,10 @@ export function useChatHistory() {
       console.error('[Clarencio][useChatHistory] Erro ao atualizar chat:', error);
       toast({
         title: "Erro ao salvar conversa",
-        description: "Não foi possível salvar a conversa. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível salvar a conversa.",
         variant: "destructive"
       });
+      throw error;
     }
   };
 
@@ -183,17 +185,29 @@ export function useChatHistory() {
     try {
       console.log('[Clarencio][useChatHistory] Deletando chat:', chatId);
       
-      const { error } = await supabase
-        .from('chat_histories')
-        .delete()
-        .eq('id', chatId);
-
-      if (error) {
-        console.error('[Clarencio][useChatHistory] Erro ao deletar chat:', error);
-        throw error;
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Usuário não autenticado');
       }
 
-      // Remover do estado local
+      const response = await fetch('/api/chat-clarencio', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chatId: chatId
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Permissão negada. Tente fazer logout e login novamente.');
+        }
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
+
       setChatHistories(prev => prev.filter(chat => chat.id !== chatId));
       
       console.log('[Clarencio][useChatHistory] Chat deletado com sucesso');
@@ -206,7 +220,7 @@ export function useChatHistory() {
       console.error('[Clarencio][useChatHistory] Erro ao deletar chat:', error);
       toast({
         title: "Erro ao excluir",
-        description: "Não foi possível excluir a conversa. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível excluir a conversa.",
         variant: "destructive"
       });
     }

@@ -1,29 +1,140 @@
 
 // API para chat com Assistant Clarêncio
-// Implementa personalidade completa e fluxo natural de conversa
+// Implementa backend proxy para operações em chat_histories
+
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = "https://onnvpakhibftxpqeraur.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Cliente Supabase com service role para operações de backend
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-  console.log('[Clarencio][API] Iniciando processamento da requisição');
+  console.log('[Clarencio][API] Iniciando processamento da requisição:', req.method);
   
   // CORS Headers
   if (req.method === "OPTIONS") {
     res.status(200)
       .setHeader("Access-Control-Allow-Origin", "*")
-      .setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+      .setHeader("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS")
       .setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
       .end();
     return;
   }
 
-  if (req.method !== "POST") {
-    console.log('[Clarencio][API] Método não permitido:', req.method);
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
   try {
+    // Verificar autenticação
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      console.log('[Clarencio][API] Token não fornecido');
+      return res.status(401).json({ error: "Token de autenticação necessário" });
+    }
+
+    // Verificar usuário usando token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.log('[Clarencio][API] Erro na verificação do usuário:', userError?.message);
+      return res.status(401).json({ error: "Token inválido ou expirado" });
+    }
+
+    console.log('[Clarencio][API] Usuário autenticado:', user.id);
+
+    // GET - Listar histórico de chats
+    if (req.method === "GET") {
+      console.log('[Clarencio][API] Carregando histórico para usuário:', user.id);
+      
+      const { data: chats, error } = await supabaseAdmin
+        .from('chat_histories')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('[Clarencio][API] Erro ao buscar chats:', error);
+        return res.status(500).json({ error: "Erro ao carregar histórico" });
+      }
+
+      console.log('[Clarencio][API] Histórico carregado:', chats?.length || 0, 'chats');
+      return res.status(200).json(chats || []);
+    }
+
+    // POST - Criar ou atualizar chat
+    if (req.method === "POST") {
+      const { action, title, messages, chatId } = req.body;
+
+      if (action === 'create') {
+        console.log('[Clarencio][API] Criando novo chat para usuário:', user.id);
+        
+        const { data: newChat, error } = await supabaseAdmin
+          .from('chat_histories')
+          .insert([
+            {
+              user_id: user.id,
+              title: title,
+              messages: messages
+            }
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Clarencio][API] Erro ao criar chat:', error);
+          return res.status(500).json({ error: "Erro ao criar chat" });
+        }
+
+        console.log('[Clarencio][API] Chat criado com sucesso:', newChat.id);
+        return res.status(200).json(newChat);
+      }
+
+      if (action === 'update') {
+        console.log('[Clarencio][API] Atualizando chat:', chatId, 'para usuário:', user.id);
+        
+        const { error } = await supabaseAdmin
+          .from('chat_histories')
+          .update({ 
+            messages: messages,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', chatId)
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('[Clarencio][API] Erro ao atualizar chat:', error);
+          return res.status(500).json({ error: "Erro ao atualizar chat" });
+        }
+
+        console.log('[Clarencio][API] Chat atualizado com sucesso');
+        return res.status(200).json({ success: true });
+      }
+
+      return res.status(400).json({ error: "Ação inválida" });
+    }
+
+    // DELETE - Deletar chat
+    if (req.method === "DELETE") {
+      const { chatId } = req.body;
+      console.log('[Clarencio][API] Deletando chat:', chatId, 'para usuário:', user.id);
+      
+      const { error } = await supabaseAdmin
+        .from('chat_histories')
+        .delete()
+        .eq('id', chatId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('[Clarencio][API] Erro ao deletar chat:', error);
+        return res.status(500).json({ error: "Erro ao deletar chat" });
+      }
+
+      console.log('[Clarencio][API] Chat deletado com sucesso');
+      return res.status(200).json({ success: true });
+    }
+
+    // Se for chamada para gerar resposta do Clarêncio
     const { messages = [] } = req.body;
-    console.log('[Clarencio][API] Mensagens recebidas:', messages.length);
+    console.log('[Clarencio][API] Gerando resposta do Clarêncio, mensagens:', messages.length);
 
     // Verificar variáveis de ambiente
     const apiKey = process.env.OPENAI_API_KEY;
