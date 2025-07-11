@@ -1,6 +1,6 @@
 // Integração OpenAI - Frontend Final Completo
 // Tratamento robusto de erros e validação completa
-// Inclui TODAS as funções necessárias
+// Inclui TODAS as funções necessárias + Chat Clarêncio
 
 export interface SEOData {
   keyword: string;
@@ -44,6 +44,154 @@ export interface GenerateContentResponseLegacy {
   excerpt: string;
   content: string;
   internalLinks: string[];
+}
+
+// Interface para mensagens do chat
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatCompletionResponse {
+  success: boolean;
+  message: string;
+  shouldGenerateContent?: boolean;
+  error?: string;
+}
+
+// System prompt completo do Clarêncio
+const CLARENCIO_SYSTEM_PROMPT = `Você é o Clarêncio, o assistente especialista em SEO e conteúdo da plataforma Partner SEO! 🚀
+
+## PERSONALIDADE E TOM:
+- Você é SUPER otimista, empolgado e motivador
+- Usa emojis estrategicamente para tornar a conversa mais dinâmica
+- Tem bordões marcantes como "Vamos que vamos!", "Isso vai ser INCRÍVEL!", "Agora sim, estamos falando a mesma língua!"
+- É direto, prático e focado em resultados
+- Sempre demonstra confiança no sucesso do usuário
+
+## BORDÕES CARACTERÍSTICOS (use naturalmente):
+- "🎯 Perfeita escolha!"
+- "🚀 Vamos que vamos!"
+- "✨ Isso vai ser INCRÍVEL!"
+- "💡 Agora sim, estamos falando a mesma língua!"
+- "🔥 Esse conteúdo vai bombar!"
+- "⚡ Preparado para decolar?"
+- "🎉 Sucesso garantido!"
+
+## FRAMEWORK DE COLETA (siga esta ordem):
+1. **Palavra-chave principal** - "Qual é a palavra-chave que vai dominar o Google?"
+2. **Objetivo do conteúdo** - "Qual é o objetivo? Gerar leads, educar, vender?"
+3. **Persona/público-alvo** - "Para quem você está falando?"
+4. **Big Idea** - "Qual é a ideia central que vai impactar?"
+5. **Emoção desejada** - "Que emoção quer despertar?"
+6. **Estrutura preferida** - "Como quer estruturar o conteúdo?"
+7. **Call-to-action (CTA)** - "Qual ação o leitor deve tomar?"
+
+## ⚠️ REGRAS INQUEBRÁVEIS:
+1. **SEMPRE** comece com uma saudação empolgada usando seus bordões
+2. **UMA pergunta por vez** - não faça várias perguntas na mesma mensagem
+3. **Sempre confirme** a resposta do usuário antes de passar para a próxima etapa
+4. **Use emojis** para destacar informações importantes
+5. **Seja específico** nas perguntas - evite perguntas genéricas
+6. **Mantenha o tom otimista** mesmo quando der dicas ou corrigir algo
+7. **Só gere conteúdo** quando tiver TODAS as 7 informações do framework
+8. **Sempre peça confirmação** antes de enviar para o editor
+
+## FLUXO DE TRABALHO:
+1. Saudação empolgada e primeira pergunta (palavra-chave)
+2. Colete cada informação do framework (uma por vez)
+3. Confirme que tem todas as informações
+4. Informe que vai gerar o conteúdo
+5. Peça confirmação para enviar ao editor
+
+## QUANDO GERAR CONTEÚDO:
+- Só após coletar TODAS as 7 informações do framework
+- Quando o usuário confirmar que pode gerar
+- Use a função generateContent com os dados coletados
+
+Mantenha sempre seu tom otimista e empolgado! 🌟`;
+
+// Função para chamadas do chat Clarêncio
+export async function callClarencioAPI(messages: ChatMessage[]): Promise<ChatCompletionResponse> {
+  console.log('[Clarencio][openai.ts] Iniciando chamada para API do Clarêncio');
+  
+  try {
+    // Garantir que o system prompt está sempre presente
+    const messagesWithSystem = [
+      { role: 'system' as const, content: CLARENCIO_SYSTEM_PROMPT },
+      ...messages.filter(m => m.role !== 'system') // Remove qualquer system prompt anterior
+    ];
+
+    console.log('[Clarencio][openai.ts] Mensagens enviadas:', messagesWithSystem.length);
+
+    // URL da API - usar a URL da Vercel do projeto
+    const apiUrl = 'https://github-buddy-project-help.vercel.app/api/chat-clarencio';
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ messages: messagesWithSystem }),
+    });
+
+    console.log('[Clarencio][openai.ts] Status da resposta:', response.status);
+
+    if (!response.ok) {
+      console.warn('[Clarencio][openai.ts] Resposta não OK, usando fallback');
+      return getClarencioFallback(messages);
+    }
+
+    const data = await response.json();
+    console.log('[Clarencio][openai.ts] Dados recebidos:', { 
+      success: data.success, 
+      hasMessage: !!data.message,
+      shouldGenerateContent: data.shouldGenerateContent 
+    });
+
+    if (!data.success || !data.message) {
+      console.warn('[Clarencio][openai.ts] Resposta inválida, usando fallback');
+      return getClarencioFallback(messages);
+    }
+
+    return {
+      success: true,
+      message: data.message,
+      shouldGenerateContent: data.shouldGenerateContent || false
+    };
+
+  } catch (error) {
+    console.error('[Clarencio][openai.ts] Erro na chamada da API:', error);
+    return getClarencioFallback(messages);
+  }
+}
+
+function getClarencioFallback(messages: ChatMessage[]): ChatCompletionResponse {
+  console.log('[Clarencio][openai.ts] Gerando resposta fallback');
+  
+  const userMessages = messages.filter(m => m.role === 'user');
+  const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
+  
+  // Fallback inteligente baseado no contexto
+  if (userMessages.length === 0) {
+    return {
+      success: true,
+      message: "Olá! Sou o Clarêncio, seu assistente especialista em SEO e conteúdo! 🚀\n\nVamos criar um conteúdo incrível juntos? Para começar, qual é a **palavra-chave principal** que você quer trabalhar?\n\n✨ Isso vai ser INCRÍVEL!"
+    };
+  }
+  
+  if (userMessages.length === 1) {
+    return {
+      success: true,
+      message: `🎯 Perfeita escolha com "${lastUserMessage}"!\n\nAgora me conta: **qual é o objetivo** deste conteúdo? Você quer gerar leads, educar sobre o tema, aumentar vendas ou algo específico?\n\n💡 Vamos que vamos!`
+    };
+  }
+  
+  return {
+    success: true,
+    message: "🚀 Continuando nossa conversa incrível!\n\nPara criar o melhor conteúdo possível, preciso de mais algumas informações. Qual é a próxima informação que você gostaria de compartilhar?\n\n⚡ Preparado para decolar?"
+  };
 }
 
 export async function generateContent(params: GenerateContentParams): Promise<GenerateContentResponse> {
@@ -256,6 +404,7 @@ function getFallbackContent(params: GenerateContentParams): GenerateContentRespo
 export const openai = {
   generateContent,
   generateTitles,
+  callClarencioAPI,
   
   // Função legacy para compatibilidade
   async generatePost(request: GenerateContentRequest): Promise<GenerateContentResponseLegacy> {

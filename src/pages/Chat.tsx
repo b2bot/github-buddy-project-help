@@ -1,21 +1,18 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, Send, FileText, Bot, User } from "lucide-react";
+import { Trash2, Plus, Send, FileText, Bot, User, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useChatHistory } from "@/hooks/useChatHistory";
-import { generateContent } from "@/integrations/openai";
+import { callClarencioAPI, generateContent, type ChatMessage } from "@/integrations/openai";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { Pencil } from "lucide-react";
-
 
 interface Message {
-  sender: 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant';
   content: string;
   created_at: string;
 }
@@ -44,10 +41,10 @@ export default function Chat() {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
-  const [chatStep, setChatStep] = useState<'initial' | 'collecting' | 'generating' | 'complete'>('initial');
+  const [shouldGenerateContent, setShouldGenerateContent] = useState(false);
   const [collectedData, setCollectedData] = useState({
     keyword: "",
-    category: "",
+    category: "geral",
     tone: "profissional",
     objective: "",
     persona: "",
@@ -57,12 +54,31 @@ export default function Chat() {
     cta: ""
   });
   
-  
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [newChatTitle, setNewChatTitle] = useState('');
 
-  function handleRenameChat(chatId: string) {
+  const { chatHistories, loadChatHistories, createNewChat, updateChat, deleteChat, setChatHistories } = useChatHistory();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('[Clarencio][Chat.tsx] Componente montado, carregando histórico');
+    loadChatHistories();
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [currentChat?.messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleRenameChat = (chatId: string) => {
     if (!newChatTitle.trim()) return;
+
+    console.log('[Clarencio][Chat.tsx] Renomeando chat:', chatId, 'para:', newChatTitle);
 
     const updatedChats = chatHistories.map((chat) =>
       chat.id === chatId ? { ...chat, title: newChatTitle.trim() } : chat
@@ -76,35 +92,19 @@ export default function Chat() {
 
     setEditingChatId(null);
     setNewChatTitle('');
-  }
-  
-  
-  const { chatHistories, loadChatHistories, createNewChat, updateChat, deleteChat } = useChatHistory();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadChatHistories();
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [currentChat?.messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleNewChat = async () => {
-    const newChat = await createNewChat("Novo chat");
+    console.log('[Clarencio][Chat.tsx] Criando novo chat');
+    
+    const newChat = await createNewChat("Novo chat com Clarêncio");
     if (newChat) {
       setCurrentChat(newChat);
       setGeneratedContent(null);
-      setChatStep('initial');
+      setShouldGenerateContent(false);
       setCollectedData({
         keyword: "",
-        category: "",
+        category: "geral",
         tone: "profissional",
         objective: "",
         persona: "",
@@ -113,121 +113,143 @@ export default function Chat() {
         structure: "",
         cta: ""
       });
+      
+      // Iniciar conversa automaticamente
+      await startInitialChat(newChat);
+    }
+  };
+
+  const startInitialChat = async (chat: ChatHistory) => {
+    try {
+      console.log('[Clarencio][Chat.tsx] Iniciando conversa inicial');
+      setIsLoading(true);
+
+      // Chamar API do Clarêncio para primeira mensagem
+      const response = await callClarencioAPI([]);
+
+      if (response.success) {
+        const welcomeMessage: Message = {
+          role: 'assistant',
+          content: response.message,
+          created_at: new Date().toISOString()
+        };
+        
+        const updatedMessages = [...chat.messages, welcomeMessage];
+        await updateChat(chat.id, updatedMessages);
+        setCurrentChat({ ...chat, messages: updatedMessages });
+      }
+    } catch (error) {
+      console.error('[Clarencio][Chat.tsx] Erro ao iniciar conversa:', error);
+      toast({
+        title: "Erro na conversa",
+        description: "Não foi possível iniciar a conversa com o Clarêncio.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSelectChat = (chat: ChatHistory) => {
+    console.log('[Clarencio][Chat.tsx] Selecionando chat:', chat.id);
     setCurrentChat(chat);
     setGeneratedContent(null);
-    setChatStep('initial');
+    setShouldGenerateContent(false);
   };
 
   const handleDeleteChat = async (chatId: string) => {
+    console.log('[Clarencio][Chat.tsx] Deletando chat:', chatId);
     await deleteChat(chatId);
     if (currentChat?.id === chatId) {
       setCurrentChat(null);
     }
   };
 
-  const getNextQuestion = () => {
-    if (!collectedData.keyword) {
-      return "Olá! Sou o Clarencio, seu assistente especialista em SEO e conteúdo. Vou te ajudar a criar um conteúdo incrível! 🚀\n\nPara começar, qual é a **palavra-chave principal** que você quer trabalhar?";
-    }
-    if (!collectedData.objective) {
-      return `Perfeita escolha com "${collectedData.keyword}"! 🎯\n\nAgora me conta: **qual é o objetivo** deste conteúdo? (Ex: gerar leads, educar sobre o tema, aumentar vendas, etc.)`;
-    }
-    if (!collectedData.persona) {
-      return "Ótimo! Agora vamos definir a **persona**. Para quem você está escrevendo? Descreva seu público-alvo ideal (idade, interesses, problemas que enfrentam, etc.)";
-    }
-    if (!collectedData.bigIdea) {
-      return "Perfeito! Agora preciso saber da **big idea** - qual é a ideia central, o conceito principal que você quer transmitir neste conteúdo?";
-    }
-    if (!collectedData.emotion) {
-      return "Excelente! Que **emoção** você quer despertar no seu leitor? (curiosidade, urgência, confiança, inspiração, etc.)";
-    }
-    if (!collectedData.structure) {
-      return "Ótimo! Que **estrutura** você prefere para o conteúdo? (lista, passo a passo, comparação, storytelling, etc.)";
-    }
-    if (!collectedData.cta) {
-      return "Última pergunta! Qual **call-to-action (CTA)** você quer incluir no final? O que o leitor deve fazer depois de ler o conteúdo?";
-    }
-    return null;
-  };
-
-  const processUserResponse = (message: string) => {
-    const newData = { ...collectedData };
+  const extractDataFromMessages = (messages: Message[]) => {
+    // Tentar extrair dados das mensagens do usuário
+    const userMessages = messages.filter(m => m.role === 'user');
     
-    if (!collectedData.keyword) {
-      newData.keyword = message;
-    } else if (!collectedData.objective) {
-      newData.objective = message;
-    } else if (!collectedData.persona) {
-      newData.persona = message;
-    } else if (!collectedData.bigIdea) {
-      newData.bigIdea = message;
-    } else if (!collectedData.emotion) {
-      newData.emotion = message;
-    } else if (!collectedData.structure) {
-      newData.structure = message;
-    } else if (!collectedData.cta) {
-      newData.cta = message;
+    if (userMessages.length > 0) {
+      const data = { ...collectedData };
+      
+      // Lógica simples para extrair dados das mensagens
+      userMessages.forEach((msg, index) => {
+        switch (index) {
+          case 0:
+            data.keyword = msg.content;
+            break;
+          case 1:
+            data.objective = msg.content;
+            break;
+          case 2:
+            data.persona = msg.content;
+            break;
+          case 3:
+            data.bigIdea = msg.content;
+            break;
+          case 4:
+            data.emotion = msg.content;
+            break;
+          case 5:
+            data.structure = msg.content;
+            break;
+          case 6:
+            data.cta = msg.content;
+            break;
+        }
+      });
+      
+      return data;
     }
     
-    setCollectedData(newData);
-    
-    // Check if we have all data needed
-    if (newData.keyword && newData.objective && newData.persona && newData.bigIdea && 
-        newData.emotion && newData.structure && newData.cta) {
-      setChatStep('generating');
-      return true;
-    }
-    
-    setChatStep('collecting');
-    return false;
+    return collectedData;
   };
 
   const generateFinalContent = async () => {
     try {
+      console.log('[Clarencio][Chat.tsx] Gerando conteúdo final');
       setIsLoading(true);
+      
+      const data = extractDataFromMessages(currentChat?.messages || []);
       
       const prompt = `
         Gere um conteúdo completo seguindo o Framework Leadclinic:
-        - Palavra-chave: ${collectedData.keyword}
-        - Objetivo: ${collectedData.objective}
-        - Persona: ${collectedData.persona}
-        - Big Idea: ${collectedData.bigIdea}
-        - Emoção: ${collectedData.emotion}
-        - Estrutura: ${collectedData.structure}
-        - CTA: ${collectedData.cta}
+        - Palavra-chave: ${data.keyword}
+        - Objetivo: ${data.objective}
+        - Persona: ${data.persona}
+        - Big Idea: ${data.bigIdea}
+        - Emoção: ${data.emotion}
+        - Estrutura: ${data.structure}
+        - CTA: ${data.cta}
       `;
 
       const response = await generateContent({
-        keyword: collectedData.keyword,
-        category: collectedData.category || 'geral',
-        tone: collectedData.tone,
+        keyword: data.keyword || 'conteúdo',
+        category: data.category || 'geral',
+        tone: data.tone || 'profissional',
         method: 'manual',
         sourceInput: prompt
       });
 
       if (response.success && response.content && response.seoData) {
         const content: GeneratedContent = {
-          title: response.seoData.title || `Guia sobre ${collectedData.keyword}`,
-          slug: response.seoData.slug || collectedData.keyword.toLowerCase().replace(/\s+/g, '-'),
-          metaDescription: response.seoData.metaDescription || `Aprenda tudo sobre ${collectedData.keyword}`,
-          altText: response.seoData.altText || `Imagem sobre ${collectedData.keyword}`,
-          excerpt: response.seoData.excerpt || `Conteúdo completo sobre ${collectedData.keyword}`,
+          title: response.seoData.title || `Guia sobre ${data.keyword}`,
+          slug: response.seoData.slug || (data.keyword || 'artigo').toLowerCase().replace(/\s+/g, '-'),
+          metaDescription: response.seoData.metaDescription || `Aprenda tudo sobre ${data.keyword}`,
+          altText: response.seoData.altText || `Imagem sobre ${data.keyword}`,
+          excerpt: response.seoData.excerpt || `Conteúdo completo sobre ${data.keyword}`,
           content: response.content,
-          category: collectedData.category || 'geral',
-          keyword: collectedData.keyword
+          category: data.category || 'geral',
+          keyword: data.keyword
         };
         
         setGeneratedContent(content);
-        setChatStep('complete');
+        setShouldGenerateContent(false);
         
-        // Add final message with generated content
+        // Adicionar mensagem final
         const finalMessage: Message = {
-          sender: 'assistant',
-          content: `🎉 **Conteúdo gerado com sucesso!**\n\n**Título:** ${content.title}\n\n**Preview:** ${content.excerpt}\n\nO conteúdo completo está pronto! Use o botão "Enviar para o Editor" para importar tudo automaticamente.`,
+          role: 'assistant',
+          content: `🎉 **Conteúdo gerado com sucesso!**\n\n**Título:** ${content.title}\n\n**Preview:** ${content.excerpt}\n\n🔥 Esse conteúdo vai bombar! Use o botão "Enviar para o Editor" para importar tudo automaticamente.\n\n✨ Vamos que vamos!`,
           created_at: new Date().toISOString()
         };
         
@@ -238,7 +260,7 @@ export default function Chat() {
         }
       }
     } catch (error) {
-      console.error('Erro ao gerar conteúdo:', error);
+      console.error('[Clarencio][Chat.tsx] Erro ao gerar conteúdo:', error);
       toast({
         title: "Erro na geração",
         description: "Não foi possível gerar o conteúdo. Tente novamente.",
@@ -253,45 +275,71 @@ export default function Chat() {
     if (!inputMessage.trim() || isLoading) return;
     
     if (!currentChat) {
+      console.log('[Clarencio][Chat.tsx] Criando novo chat antes de enviar mensagem');
       await handleNewChat();
       return;
     }
 
-    const userMessage: Message = {
-      sender: 'user',
-      content: inputMessage,
-      created_at: new Date().toISOString()
-    };
+    try {
+      console.log('[Clarencio][Chat.tsx] Enviando mensagem:', inputMessage);
+      setIsLoading(true);
 
-    const updatedMessages = [...currentChat.messages, userMessage];
-    await updateChat(currentChat.id, updatedMessages);
-    setCurrentChat({ ...currentChat, messages: updatedMessages });
+      const userMessage: Message = {
+        role: 'user',
+        content: inputMessage,
+        created_at: new Date().toISOString()
+      };
 
-    const isComplete = processUserResponse(inputMessage);
-    setInputMessage("");
+      const updatedMessages = [...currentChat.messages, userMessage];
+      await updateChat(currentChat.id, updatedMessages);
+      setCurrentChat({ ...currentChat, messages: updatedMessages });
 
-    if (isComplete) {
-      // Generate final content
-      await generateFinalContent();
-    } else {
-      // Send next question
-      const nextQuestion = getNextQuestion();
-      if (nextQuestion) {
+      // Preparar mensagens para API (excluir system)
+      const chatMessages: ChatMessage[] = updatedMessages
+        .filter(m => m.role !== 'system')
+        .map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content
+        }));
+
+      setInputMessage("");
+
+      // Chamar API do Clarêncio
+      const response = await callClarencioAPI(chatMessages);
+
+      if (response.success) {
         const assistantMessage: Message = {
-          sender: 'assistant',
-          content: nextQuestion,
+          role: 'assistant',
+          content: response.message,
           created_at: new Date().toISOString()
         };
         
         const newMessages = [...updatedMessages, assistantMessage];
         await updateChat(currentChat.id, newMessages);
         setCurrentChat({ ...currentChat, messages: newMessages });
+
+        // Verificar se deve gerar conteúdo
+        if (response.shouldGenerateContent) {
+          console.log('[Clarencio][Chat.tsx] Marcado para gerar conteúdo');
+          setShouldGenerateContent(true);
+        }
       }
+    } catch (error) {
+      console.error('[Clarencio][Chat.tsx] Erro ao enviar mensagem:', error);
+      toast({
+        title: "Erro na conversa",
+        description: "Não foi possível enviar a mensagem. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSendToEditor = () => {
     if (!generatedContent) return;
+    
+    console.log('[Clarencio][Chat.tsx] Enviando conteúdo para o editor');
     
     // Store the generated content in localStorage to be picked up by the Manual page
     localStorage.setItem('clarencio_generated_content', JSON.stringify({
@@ -315,231 +363,228 @@ export default function Chat() {
     navigate('/manual');
   };
 
-  const startInitialChat = async () => {
-    if (!currentChat) return;
-    
-    const welcomeMessage: Message = {
-      sender: 'assistant',
-      content: getNextQuestion() || "Olá! Como posso te ajudar hoje?",
-      created_at: new Date().toISOString()
-    };
-    
-    const updatedMessages = [...currentChat.messages, welcomeMessage];
-    await updateChat(currentChat.id, updatedMessages);
-    setCurrentChat({ ...currentChat, messages: updatedMessages });
-    setChatStep('collecting');
+  const handleGenerateContent = async () => {
+    if (shouldGenerateContent) {
+      await generateFinalContent();
+    }
   };
 
-  useEffect(() => {
-    if (currentChat && currentChat.messages.length === 0 && chatStep === 'initial') {
-      startInitialChat();
-    }
-  }, [currentChat]);
-
-return (
-  <Layout>
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white dark:bg-zinc-900 text-gray-900 dark:text-gray-100">
-      {/* Sidebar */}
-      <div className="w-80 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
-        <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
-          <Button
-            onClick={handleNewChat}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Chat
-          </Button>
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-2">
-            {chatHistories.map((chat) => (
-              <div
-                key={chat.id}
-                className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                  currentChat?.id === chat.id
-                    ? 'bg-gray-100 dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600'
-                    : 'hover:bg-gray-100 dark:hover:bg-zinc-700'
-                }`}
-                onClick={() => handleSelectChat(chat)}
-              >
-                <div className="flex-1 min-w-0">
-                  {editingChatId === chat.id ? (
-                    <input
-                      type="text"
-                      value={newChatTitle}
-                      onChange={(e) => setNewChatTitle(e.target.value)}
-                      onBlur={() => handleRenameChat(chat.id)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleRenameChat(chat.id)}
-                      autoFocus
-                      className="text-sm font-medium text-gray-900 dark:text-gray-100 bg-transparent border-b border-blue-500 focus:outline-none"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {chat.title.length > 30 ? chat.title.substring(0, 30) + '...' : chat.title}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(chat.created_at).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-					  if (editingChatId !== chat.id) {
-                        setEditingChatId(chat.id);
-                        setNewChatTitle(chat.title);
-					  }
-                    }}
-                  >
-                    <Pencil className="w-4 h-4 text-gray-500" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteChat(chat.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+  return (
+    <Layout>
+      <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white dark:bg-zinc-900 text-gray-900 dark:text-gray-100">
+        {/* Sidebar */}
+        <div className="w-80 bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700 flex flex-col">
+          <div className="p-4 border-b border-gray-200 dark:border-zinc-700">
+            <Button
+              onClick={handleNewChat}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Chat
+            </Button>
           </div>
-        </ScrollArea>
-      </div>
 
-      {/* Chat principal */}
-      <div className="flex-1 flex flex-col">
-        {currentChat ? (
-          <>
-            {/* Mensagens */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="max-w-4xl mx-auto w-full">
-                {currentChat.messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`w-full flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-10`}
-                  >
-                    <div
-                      className={`flex items-start w-full ${
-                        message.sender === 'user'
-                          ? 'flex-row-reverse ml-auto max-w-[60%]'
-                          : 'flex-row mr-auto max-w-[99%]'
-                      }`}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center mt-1 ${
-                          message.sender === 'user' ? 'bg-transparent ml-3' : 'bg-purple-500 mr-3'
-                        }`}
-                      >
-                        {message.sender === 'user' ? (
-                          <User className="w-0 h-0 text-white" />
-                        ) : (
-                          <Bot className="w-4 h-4 text-white" />
-                        )}
-                      </div>
-
-                      {message.sender === 'user' ? (
-                        <div className="px-4 py-3 bg-gray-100 dark:bg-zinc-700 text-gray-900 dark:text-gray-100 rounded-lg rounded-br-none text-sm whitespace-pre-wrap">
-                          {message.content}
-                        </div>
-                      ) : (
-                        <div className="flex-1 mt-[8px]">
-                          <div className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line leading-relaxed">
-                            {message.content}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-2">
+              {chatHistories.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                    currentChat?.id === chat.id
+                      ? 'bg-gray-100 dark:bg-zinc-700 border border-gray-200 dark:border-zinc-600'
+                      : 'hover:bg-gray-100 dark:hover:bg-zinc-700'
+                  }`}
+                  onClick={() => handleSelectChat(chat)}
+                >
+                  <div className="flex-1 min-w-0">
+                    {editingChatId === chat.id ? (
+                      <input
+                        type="text"
+                        value={newChatTitle}
+                        onChange={(e) => setNewChatTitle(e.target.value)}
+                        onBlur={() => handleRenameChat(chat.id)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleRenameChat(chat.id)}
+                        autoFocus
+                        className="text-sm font-medium text-gray-900 dark:text-gray-100 bg-transparent border-b border-blue-500 focus:outline-none"
+                      />
+                    ) : (
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {chat.title.length > 30 ? chat.title.substring(0, 30) + '...' : chat.title}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(chat.created_at).toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
-                ))}
-
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="flex">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500 mr-3">
-                        <Bot className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 text-gray-900 dark:text-gray-100 rounded-lg rounded-bl-none px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-
-            {/* Input */}
-            <div className="p-4 bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700">
-              <div className="max-w-4xl mx-auto">
-                {generatedContent && chatStep === 'complete' && (
-                  <div className="mb-4">
+                  <div className="flex items-center gap-1">
                     <Button
-                      onClick={handleSendToEditor}
-                      className="bg-gradient-to-r from-green-600 to-blue-600 text-white hover:opacity-90"
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (editingChatId !== chat.id) {
+                          setEditingChatId(chat.id);
+                          setNewChatTitle(chat.title);
+                        }
+                      }}
                     >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Enviar para o Editor
+                      <Pencil className="w-4 h-4 text-gray-500" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(chat.id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
                     </Button>
                   </div>
-                )}
-                <div className="flex space-x-2">
-                  <Input
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder="Digite sua mensagem..."
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage() }
-                    disabled={isLoading}
-                    className="flex-1 dark:bg-zinc-700 dark:text-white dark:placeholder-gray-400"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={isLoading || !inputMessage.trim()}
-                    className="bg-purple-800 hover:bg-blue-600 text-white dark:bg-blue-800 hover:bg-blue-600 text-white"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Chat principal */}
+        <div className="flex-1 flex flex-col">
+          {currentChat ? (
+            <>
+              {/* Mensagens */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="max-w-4xl mx-auto w-full">
+                  {currentChat.messages
+                    .filter(m => m.role !== 'system') // Não exibir mensagens system
+                    .map((message, index) => (
+                    <div
+                      key={index}
+                      className={`w-full flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-10 animate-fade-in`}
+                    >
+                      <div
+                        className={`flex items-start w-full ${
+                          message.role === 'user'
+                            ? 'flex-row-reverse ml-auto max-w-[60%]'
+                            : 'flex-row mr-auto max-w-[99%]'
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center mt-1 ${
+                            message.role === 'user' ? 'bg-transparent ml-3' : 'bg-purple-500 mr-3'
+                          }`}
+                        >
+                          {message.role === 'user' ? (
+                            <User className="w-0 h-0 text-white" />
+                          ) : (
+                            <Bot className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+
+                        {message.role === 'user' ? (
+                          <div className="px-4 py-3 bg-gray-100 dark:bg-zinc-700 text-gray-900 dark:text-gray-100 rounded-lg rounded-br-none text-sm whitespace-pre-wrap">
+                            {message.content}
+                          </div>
+                        ) : (
+                          <div className="flex-1 mt-[8px]">
+                            <div className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-line leading-relaxed">
+                              {message.content}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isLoading && (
+                    <div className="flex justify-start animate-fade-in">
+                      <div className="flex">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500 mr-3">
+                          <Bot className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-600 text-gray-900 dark:text-gray-100 rounded-lg rounded-bl-none px-4 py-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
+
+              {/* Input */}
+              <div className="p-4 bg-white dark:bg-zinc-800 border-t border-gray-200 dark:border-zinc-700">
+                <div className="max-w-4xl mx-auto">
+                  {/* Botões de ação */}
+                  <div className="mb-4 flex gap-2">
+                    {shouldGenerateContent && (
+                      <Button
+                        onClick={handleGenerateContent}
+                        disabled={isLoading}
+                        className="bg-gradient-to-r from-green-600 to-blue-600 text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Gerar Conteúdo
+                      </Button>
+                    )}
+                    {generatedContent && (
+                      <Button
+                        onClick={handleSendToEditor}
+                        className="bg-gradient-to-r from-green-600 to-blue-600 text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Enviar para o Editor
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Input
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      placeholder="Digite sua mensagem..."
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      disabled={isLoading}
+                      className="flex-1 dark:bg-zinc-700 dark:text-white dark:placeholder-gray-400"
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={isLoading || !inputMessage.trim()}
+                      className="bg-purple-600 hover:bg-purple-700 text-white transition-all duration-200 hover:scale-105"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <Card className="w-96 glass dark:bg-zinc-800 dark:text-white">
+                <CardContent className="p-8 text-center">
+                  <Bot className="w-16 h-16 mx-auto mb-4 text-purple-500" />
+                  <h2 className="text-2xl font-bold mb-2">Chat com Clarêncio</h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    Inicie uma conversa com o Clarêncio para criar conteúdos otimizados para SEO
+                  </p>
+                  <Button
+                    onClick={handleNewChat}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Começar Novo Chat
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <Card className="w-96 glass dark:bg-zinc-800 dark:text-white">
-              <CardContent className="p-8 text-center">
-                <Bot className="w-16 h-16 mx-auto mb-4 text-purple-500" />
-                <h2 className="text-2xl font-bold mb-2">Chat com Clarencio</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Inicie uma conversa com o Clarencio para criar conteúdos otimizados para SEO
-                </p>
-                <Button
-                  onClick={handleNewChat}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Começar Novo Chat
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  </Layout>
-);
-
-
+    </Layout>
+  );
 }

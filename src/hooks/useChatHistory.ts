@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
-  sender: 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant';
   content: string;
   created_at: string;
 }
@@ -25,10 +25,11 @@ export function useChatHistory() {
   const loadChatHistories = async () => {
     try {
       setIsLoading(true);
+      console.log('[Clarencio][useChatHistory] Carregando histórico de conversas');
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('No user found');
+        console.log('[Clarencio][useChatHistory] Usuário não encontrado');
         return;
       }
 
@@ -42,9 +43,10 @@ export function useChatHistory() {
         throw error;
       }
 
+      console.log('[Clarencio][useChatHistory] Histórico carregado:', data?.length || 0, 'conversas');
       setChatHistories(data || []);
     } catch (error) {
-      console.error('Error loading chat histories:', error);
+      console.error('[Clarencio][useChatHistory] Erro ao carregar histórico:', error);
       toast({
         title: "Erro ao carregar histórico",
         description: "Não foi possível carregar o histórico de conversas.",
@@ -57,6 +59,8 @@ export function useChatHistory() {
 
   const createNewChat = async (title: string): Promise<ChatHistory | null> => {
     try {
+      console.log('[Clarencio][useChatHistory] Criando novo chat:', title);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -67,13 +71,22 @@ export function useChatHistory() {
         return null;
       }
 
+      // Criar chat com mensagem system inicial
+      const initialMessages: Message[] = [
+        {
+          role: 'system',
+          content: 'System prompt do Clarêncio (será injetado na API)',
+          created_at: new Date().toISOString()
+        }
+      ];
+
       const { data, error } = await supabase
         .from('chat_histories')
         .insert([
           {
             user_id: user.id,
             title: title,
-            messages: []
+            messages: initialMessages
           }
         ])
         .select()
@@ -86,9 +99,10 @@ export function useChatHistory() {
       const newChat = data as ChatHistory;
       setChatHistories(prev => [newChat, ...prev]);
       
+      console.log('[Clarencio][useChatHistory] Novo chat criado:', newChat.id);
       return newChat;
     } catch (error) {
-      console.error('Error creating new chat:', error);
+      console.error('[Clarencio][useChatHistory] Erro ao criar chat:', error);
       toast({
         title: "Erro ao criar chat",
         description: "Não foi possível criar um novo chat.",
@@ -100,6 +114,8 @@ export function useChatHistory() {
 
   const updateChat = async (chatId: string, messages: Message[]) => {
     try {
+      console.log('[Clarencio][useChatHistory] Atualizando chat:', chatId, 'com', messages.length, 'mensagens');
+      
       const { error } = await supabase
         .from('chat_histories')
         .update({ 
@@ -120,8 +136,10 @@ export function useChatHistory() {
             : chat
         )
       );
+      
+      console.log('[Clarencio][useChatHistory] Chat atualizado com sucesso');
     } catch (error) {
-      console.error('Error updating chat:', error);
+      console.error('[Clarencio][useChatHistory] Erro ao atualizar chat:', error);
       toast({
         title: "Erro ao salvar conversa",
         description: "Não foi possível salvar a conversa.",
@@ -132,6 +150,8 @@ export function useChatHistory() {
 
   const deleteChat = async (chatId: string) => {
     try {
+      console.log('[Clarencio][useChatHistory] Deletando chat:', chatId);
+      
       const { error } = await supabase
         .from('chat_histories')
         .delete()
@@ -143,12 +163,13 @@ export function useChatHistory() {
 
       setChatHistories(prev => prev.filter(chat => chat.id !== chatId));
       
+      console.log('[Clarencio][useChatHistory] Chat deletado com sucesso');
       toast({
         title: "Chat excluído",
         description: "A conversa foi excluída com sucesso.",
       });
     } catch (error) {
-      console.error('Error deleting chat:', error);
+      console.error('[Clarencio][useChatHistory] Erro ao deletar chat:', error);
       toast({
         title: "Erro ao excluir",
         description: "Não foi possível excluir a conversa.",
@@ -163,6 +184,7 @@ export function useChatHistory() {
     loadChatHistories,
     createNewChat,
     updateChat,
-    deleteChat
+    deleteChat,
+    setChatHistories
   };
 }
