@@ -19,28 +19,12 @@ export default async function handler(req, res) {
 
   console.log('[Clarencio][API] Request:', req.method);
 
-  // --- AUTENTICAÇÃO ---
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.replace("Bearer ", "");
-  if (!token) {
-    console.error('[Clarencio][API] Token não fornecido');
-    return res.status(401).json({ error: "Token de autenticação necessário" });
-  }
-  // Injeta token no client admin
-  supabaseAdmin.auth.setAuth(token);
-
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser();
-  if (userErr || !userData.user) {
-    console.error('[Clarencio][API] Auth error:', userErr);
-    return res.status(401).json({ error: "Token inválido ou expirado" });
-  }
-  const userId = userData.user.id;
-
   try {
-    // Verificar autenticação
-    const token = req.headers.authorization?.split(' ')[1];
+    // --- AUTENTICAÇÃO ---
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.replace("Bearer ", "");
     if (!token) {
-      console.log('[Clarencio][API] Token não fornecido');
+      console.error('[Clarencio][API] Token não fornecido');
       return res.status(401).json({ error: "Token de autenticação necessário" });
     }
 
@@ -122,7 +106,33 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      return res.status(400).json({ error: "Ação inválida" });
+      // Se não for create nem update, pode ser uma chamada para gerar resposta do Clarêncio
+      const { messages = [] } = req.body;
+      console.log('[Clarencio][API] Gerando resposta do Clarêncio, mensagens:', messages.length);
+
+      // Verificar variáveis de ambiente
+      const apiKey = process.env.OPENAI_API_KEY;
+      console.log('[Clarencio][API] API Key disponível:', !!apiKey);
+
+      if (apiKey) {
+        try {
+          // Usar OpenAI real
+          const result = await generateClarencioResponse(apiKey, messages);
+
+          if (result.success) {
+            console.log('[Clarencio][API] Resposta gerada com sucesso via OpenAI');
+            return res.status(200).json(result);
+          }
+        } catch (openaiError) {
+          console.log('[Clarencio][API] Erro na OpenAI, usando fallback:', openaiError.message);
+        }
+      }
+
+      // Fallback inteligente
+      console.log('[Clarencio][API] Usando fallback inteligente');
+      const fallbackResult = generateClarencioFallback(messages);
+      
+      return res.status(200).json(fallbackResult);
     }
 
     // DELETE - Deletar chat
@@ -145,33 +155,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // Se for chamada para gerar resposta do Clarêncio
-    const { messages = [] } = req.body;
-    console.log('[Clarencio][API] Gerando resposta do Clarêncio, mensagens:', messages.length);
-
-    // Verificar variáveis de ambiente
-    const apiKey = process.env.OPENAI_API_KEY;
-    console.log('[Clarencio][API] API Key disponível:', !!apiKey);
-
-    if (apiKey) {
-      try {
-        // Usar OpenAI real
-        const result = await generateClarencioResponse(apiKey, messages);
-
-        if (result.success) {
-          console.log('[Clarencio][API] Resposta gerada com sucesso via OpenAI');
-          return res.status(200).json(result);
-        }
-      } catch (openaiError) {
-        console.log('[Clarencio][API] Erro na OpenAI, usando fallback:', openaiError.message);
-      }
-    }
-
-    // Fallback inteligente
-    console.log('[Clarencio][API] Usando fallback inteligente');
-    const fallbackResult = generateClarencioFallback(messages);
-    
-    res.status(200).json(fallbackResult);
+    return res.status(405).json({ error: "Método não permitido" });
 
   } catch (error) {
     console.error('[Clarencio][API] Erro geral:', error);
@@ -183,7 +167,7 @@ export default async function handler(req, res) {
       shouldGenerateContent: false
     };
     
-    res.status(200).json(emergencyResult);
+    return res.status(200).json(emergencyResult);
   }
 }
 
