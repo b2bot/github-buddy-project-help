@@ -3,6 +3,8 @@
 // Implementa personalidade completa e fluxo natural de conversa
 
 export default async function handler(req, res) {
+  console.log('[Clarencio][API] Iniciando processamento da requisição');
+  
   // CORS Headers
   if (req.method === "OPTIONS") {
     res.status(200)
@@ -14,43 +16,41 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "POST") {
+    console.log('[Clarencio][API] Método não permitido:', req.method);
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   try {
     const { messages = [] } = req.body;
-
-    console.log('Iniciando chat com Clarêncio:', { messagesCount: messages.length });
+    console.log('[Clarencio][API] Mensagens recebidas:', messages.length);
 
     // Verificar variáveis de ambiente
     const apiKey = process.env.OPENAI_API_KEY;
-    const hasConfig = !!apiKey;
+    console.log('[Clarencio][API] API Key disponível:', !!apiKey);
 
-    console.log('Configuração:', { hasApiKey: !!apiKey });
-
-    if (hasConfig) {
+    if (apiKey) {
       try {
         // Usar OpenAI real
         const result = await generateClarencioResponse(apiKey, messages);
 
         if (result.success) {
-          console.log('Resposta gerada com sucesso via OpenAI');
+          console.log('[Clarencio][API] Resposta gerada com sucesso via OpenAI');
           return res.status(200).json(result);
         }
       } catch (openaiError) {
-        console.log('Erro na OpenAI, usando fallback:', openaiError.message);
+        console.log('[Clarencio][API] Erro na OpenAI, usando fallback:', openaiError.message);
       }
     }
 
     // Fallback inteligente
-    console.log('Usando fallback inteligente');
+    console.log('[Clarencio][API] Usando fallback inteligente');
     const fallbackResult = generateClarencioFallback(messages);
     
     res.status(200).json(fallbackResult);
 
   } catch (error) {
-    console.error('Erro geral:', error);
+    console.error('[Clarencio][API] Erro geral:', error);
     
     // Fallback de emergência
     const emergencyResult = {
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 }
 
 async function generateClarencioResponse(apiKey, messages) {
-  console.log('Chamando OpenAI para Clarêncio');
+  console.log('[Clarencio][API] Chamando OpenAI para Clarêncio');
 
   // System prompt completo do Clarêncio
   const systemPrompt = `Você é o Clarêncio, o assistente especialista em SEO e conteúdo da plataforma Partner SEO! 🚀
@@ -179,7 +179,7 @@ function checkShouldGenerateContent(responseMessage, messages) {
 }
 
 function generateClarencioFallback(messages) {
-  console.log('Gerando resposta fallback do Clarêncio');
+  console.log('[Clarencio][API] Gerando resposta fallback');
   
   const userMessages = messages.filter(m => m.role === 'user');
   const messageCount = userMessages.length;
